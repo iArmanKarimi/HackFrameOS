@@ -1,9 +1,8 @@
-# HackFrame
+# HackFrameOS
 
 Small dev notes for this project.
 
-Development
-------------
+## Development
 
 Run the Vite dev server:
 
@@ -13,21 +12,21 @@ npm run dev
 
 The app entry HTML is at the project root `index.html` and the client entry is `src/main.tsx`.
 
-Build / Preview
----------------
+## Build / Preview
 
 ```pwsh
 npm run build
 npm run serve
 ```
 
-Notes
------
-- `public/` is available for static assets. There was a duplicate `public/index.html`; the project now uses the root `index.html` as the app entry.
-- Types for `react-router-dom` are installed as a dev dependency (`@types/react-router-dom`).
-# HackFrame
+## Notes
 
-HackFrame is a React application built with TypeScript and styled using Tailwind CSS. This project serves as a template for building modern web applications with a focus on modularity and reusability.
+- `public/` is available for static assets. If a duplicate `public/index.html` exists, the project uses the root `index.html` as the app entry.
+- Types for `react-router-dom` are installed as a dev dependency (`@types/react-router-dom`).
+
+# HackFrameOS
+
+HackFrameOS is a React application built with TypeScript and styled using Tailwind CSS. This project serves as a template for building modern web applications with a focus on modularity and reusability.
 
 ## Features
 
@@ -39,12 +38,12 @@ HackFrame is a React application built with TypeScript and styled using Tailwind
 ## Project Structure
 
 ```
-HackFrame
+HackFrameOS
 ├── src
 │   ├── main.tsx          # Entry point of the application
 │   ├── App.tsx           # Main App component
 │   ├── index.css         # Global CSS styles
-│   ├── components         # Reusable components
+│   ├── components        # Reusable components
 │   │   └── ExampleComponent.tsx
 │   ├── pages             # Application pages
 │   │   └── Home.tsx
@@ -65,20 +64,23 @@ HackFrame
 
 ## Getting Started
 
-To get started with HackFrame, follow these steps:
+To get started with HackFrameOS, follow these steps:
 
 1. **Clone the repository**:
+
    ```
    git clone <repository-url>
-   cd HackFrame
+   cd HackFrameOS
    ```
 
 2. **Install dependencies**:
+
    ```
    npm install
    ```
 
 3. **Run the development server**:
+
    ```
    npm run dev
    ```
