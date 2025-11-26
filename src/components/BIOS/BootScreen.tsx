@@ -6,23 +6,27 @@ const AnimatedDots: React.FC<{ text: string }> = ({ text }) => {
 	const [dotCount, setDotCount] = useState(1);
 
 	useEffect(() => {
-		// Start with 1 dot, then change every 1200ms
-		// First change happens after 1200ms (to show 1 dot for full duration)
-		const timeout1 = setTimeout(() => setDotCount(2), 1200);
-		const timeout2 = setTimeout(() => setDotCount(3), 2400);
+		const timeouts: NodeJS.Timeout[] = [];
+		let intervalId: NodeJS.Timeout | undefined;
 		
-		// Then use interval to cycle continuously
-		const interval = setInterval(() => {
-			setDotCount(prev => {
-				if (prev >= 3) return 1;
-				return prev + 1;
-			});
+		// Wait 1200ms before first change (show 1 dot for full duration)
+		const timeout1Id = setTimeout(() => {
+			setDotCount(2);
+			// Wait another 1200ms for 3 dots
+			const timeout2Id = setTimeout(() => {
+				setDotCount(3);
+				// Then start continuous cycling
+				intervalId = setInterval(() => {
+					setDotCount(prev => (prev >= 3 ? 1 : prev + 1));
+				}, 1200);
+			}, 1200);
+			timeouts.push(timeout2Id);
 		}, 1200);
+		timeouts.push(timeout1Id);
 
 		return () => {
-			clearTimeout(timeout1);
-			clearTimeout(timeout2);
-			clearInterval(interval);
+			timeouts.forEach(id => clearTimeout(id));
+			if (intervalId) clearInterval(intervalId);
 		};
 	}, []);
 
@@ -68,15 +72,23 @@ export const BootScreen: React.FC<{
 	/**
 	 * Effect: reveal one new line at a time.
 	 * - Stops once all lines are shown.
+	 * - Adds pause after each segment (empty line).
 	 */
 	useEffect(() => {
 		if (index >= lines.length) {
 			return;
 		}
 
+		// Check if current line is empty (segment break)
+		const currentLine = lines[index];
+		const isSegmentBreak = currentLine.trim() === "";
+		
+		// Longer pause after segment breaks (300ms), normal pause for regular lines
+		const delay = isSegmentBreak ? 300 : BOOT_LINE_INTERVAL_MS;
+
 		const timer = setTimeout(() => {
 			setIndex(prev => prev + 1); // reveal next line
-		}, BOOT_LINE_INTERVAL_MS);
+		}, delay);
 
 		return () => clearTimeout(timer); // cleanup on unmount or re-render
 	}, [index, lines.length]);
