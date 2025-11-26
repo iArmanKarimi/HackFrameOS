@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   runCommand,
   HELP_TEXT,
-  MODULE_LISTING,
   BOOT_BANNER,
 } from "./SafeModeCore";
 

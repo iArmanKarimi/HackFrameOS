@@ -4,7 +4,7 @@
 import {
   BOOT_BANNER,
   HELP_TEXT,
-  MODULE_LISTING,
+  getModuleListing,
   COMMAND_NOT_FOUND,
   showStatus,
   showMission,
@@ -22,7 +22,7 @@ export { BOOT_LOG } from "./boot-log";
 export {
   BOOT_BANNER,
   HELP_TEXT,
-  MODULE_LISTING,
+  getModuleListing,
   COMMAND_NOT_FOUND,
   showStatus,
   showMission,
@@ -44,9 +44,9 @@ export function runCommand(input: string): string {
 
   // Core rehab / boot commands
   if (trimmed === "help") return HELP_TEXT;
-  if (trimmed === "load") return MODULE_LISTING;
+  if (trimmed === "load") return getModuleListing();
   if (trimmed === "status") return showStatus();
-  if (trimmed === "fragments") return listFragments();
+  if (trimmed === "fragment") return listFragments();
   if (trimmed === "clear") return clearScreen();
 
   // Mission & guidance

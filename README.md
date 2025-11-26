@@ -60,8 +60,8 @@ status
 load auth-module
 load net-module
 load entropy-core
-fragments
-fragment 0001A3F5
+fragment
+fragment 0xd4
 fs ls /var/log
 fs cat /var/log/hackframe.log
 wifi
@@ -81,8 +81,7 @@ Everything below stays inside an in‑memory sandbox; no real system calls or pa
 - `help` – List available commands.
 - `status` – Show module states and unresolved fragment count.
 - `load` / `load [module]` – List or load subsystems.
-- `fragments` – List boot fragments.
-- `fragment [id]` – Attempt to resolve a fragment.
+- `fragment` / `fragment [id]` – List boot fragments or resolve a specific fragment.
 - `clear` – Clear the terminal.
 
 ### Mission & guidance

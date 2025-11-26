@@ -24,7 +24,7 @@ export const HELP_TEXT = `Available commands:
   load              Load subsystems
   load [module]     Load a specific subsystem
   status            View current system state
-  fragments         Inspect boot fragments
+  fragment          Inspect boot fragments
   fragment [id]     Attempt to resolve a fragment
   mission           Show high-level rehabilitation objectives
   hint              Contextual guidance for the next step
@@ -32,17 +32,20 @@ export const HELP_TEXT = `Available commands:
   clear             Clear the terminal screen
 `;
 
-export const MODULE_LISTING = `[LOAD] Available modules:
-  └─ auth-module      [ ]
-  └─ net-module       [ ]
-  └─ entropy-core     [ ]
-  └─ locale-config    [ ]
-  └─ time-sync        [ ]
-  └─ package-core     [ ]
-     └─ core-utils    [ ]
-        └─ gfx-module [ ]
+export function getModuleListing(): string {
+  const formatStatus = (state: ModuleState) => state === "OK" ? "[OK]" : "[ ]";
+  return `[LOAD] Available modules:
+  └─ auth-module      ${formatStatus(moduleStates["auth-module"])}
+  └─ net-module       ${formatStatus(moduleStates["net-module"])}
+  └─ entropy-core     ${formatStatus(moduleStates["entropy-core"])}
+  └─ locale-config     ${formatStatus(moduleStates["locale-config"])}
+  └─ time-sync        ${formatStatus(moduleStates["time-sync"])}
+  └─ package-core     ${formatStatus(moduleStates["package-core"])}
+     └─ core-utils    ${formatStatus(moduleStates["core-utils"])}
+        └─ gfx-module ${formatStatus(moduleStates["gfx-module"])}
 Type 'load [module]' to activate.
 `;
+}
 
 // --- Module state & types ---
 export type ModuleId =
@@ -94,43 +97,43 @@ export interface BootFragment {
 
 const bootFragments: BootFragment[] = [
   {
-    id: "0001A3F2",
+    id: "0xa3",
     description: "orphaned syscall",
     origin: "auth-module",
     status: "UNRESOLVED",
   },
   {
-    id: "0001A3F3",
+    id: "0xb7",
     description: "ghost port pinged",
     origin: "net-module",
     status: "UNRESOLVED",
   },
   {
-    id: "0001A3F5",
+    id: "0xd4",
     description: "entropy seed missing",
     origin: "entropy-core",
     status: "UNRESOLVED",
   },
   {
-    id: "0001A3F7",
+    id: "0xf2",
     description: "invalid locale binding",
     origin: "locale-config",
     status: "UNRESOLVED",
   },
   {
-    id: "0001A3F8",
+    id: "0x9c",
     description: "oscillator drift detected",
     origin: "time-sync",
     status: "UNRESOLVED",
   },
   {
-    id: "0001A3F9",
+    id: "0xe1",
     description: "repo mount failure",
     origin: "package-core",
     status: "UNRESOLVED",
   },
   {
-    id: "0001A3FA",
+    id: "0x8f",
     description: "framebuffer handshake failed",
     origin: "gfx-module",
     status: "UNRESOLVED",
@@ -209,14 +212,14 @@ export function showStatus(): string {
   Kernel: initialized  
   Memory: 512KB base / 2048KB extended  
   Subsystems:
-  └─ auth-module      [${moduleStates["auth-module"]}]
-  └─ net-module       [${moduleStates["net-module"]}]
-  └─ entropy-core     [${moduleStates["entropy-core"]}]
-  └─ locale-config    [${moduleStates["locale-config"]}]
-  └─ time-sync        [${moduleStates["time-sync"]}]
-  └─ package-core     [${moduleStates["package-core"]}]
-     └─ core-utils    [${moduleStates["core-utils"]}]
-        └─ gfx-module [${moduleStates["gfx-module"]}]
+  └─ auth-module      ${moduleStates["auth-module"] === "OK" ? "[OK]" : "[ ]"}
+  └─ net-module       ${moduleStates["net-module"] === "OK" ? "[OK]" : "[ ]"}
+  └─ entropy-core     ${moduleStates["entropy-core"] === "OK" ? "[OK]" : "[ ]"}
+  └─ locale-config     ${moduleStates["locale-config"] === "OK" ? "[OK]" : "[ ]"}
+  └─ time-sync        ${moduleStates["time-sync"] === "OK" ? "[OK]" : "[ ]"}
+  └─ package-core     ${moduleStates["package-core"] === "OK" ? "[OK]" : "[ ]"}
+     └─ core-utils    ${moduleStates["core-utils"] === "OK" ? "[OK]" : "[ ]"}
+        └─ gfx-module ${moduleStates["gfx-module"] === "OK" ? "[OK]" : "[ ]"}
   Boot fragments: ${unresolvedCount} unresolved
 `;
 }
@@ -234,7 +237,7 @@ export function showMission(): string {
 ${lines}
 
 System exits degraded state when all critical tasks are complete.
-Use 'status', 'load', and 'fragments' to make progress.
+Use 'status', 'load', and 'fragment' to make progress.
 `;
 }
 
@@ -267,7 +270,7 @@ Use 'load entropy-core' before attempting to resolve entropy-related fragments.`
 
   if (!bootFragments.every((f) => f.status === "RESOLVED")) {
     return `[HINT] Boot fragments remain unresolved.
-Use 'fragments' to list them and 'fragment [id]' after the relevant module is online.`;
+Use 'fragment' to list them and 'fragment [id]' after the relevant module is online.`;
   }
 
   if (moduleStates["gfx-module"] !== "OK") {
@@ -283,9 +286,10 @@ export function listFragments(): string {
   const resolved = bootFragments.filter((f) => f.status === "RESOLVED");
   const unresolved = bootFragments.filter((f) => f.status === "UNRESOLVED");
   const bootFragmentsSorted = [...resolved, ...unresolved];
+  const formatStatus = (status: FragmentState) => status === "RESOLVED" ? "[OK]" : "[ ]";
   return `[FRAGMENTS] Retrieved boot fragment log...
 ${bootFragmentsSorted
-      .map((f) => ` └─ [${f.id}] [${f.status}] ${f.description}`)
+      .map((f) => ` └─ ${f.id}. ${formatStatus(f.status)} ${f.description}`)
       .join("\n")}
 Use 'fragment [id]' to resolve.`;
 }
