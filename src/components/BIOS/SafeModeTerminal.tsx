@@ -8,18 +8,18 @@ import {
   BOOT_BANNER,
 } from "./SafeModeCore";
 
-const SafeModeTerminal: React.FC = () => {
-  const [history, setHistory] = useState<string[]>([
-    BOOT_BANNER,
-    HELP_TEXT,
-    MODULE_LISTING,
-  ]);
+const SafeModeTerminal: React.FC<{
+  onComplete?: () => void;
+}> = ({ onComplete }) => {
+  const [history, setHistory] = useState<string[]>([BOOT_BANNER]);
   const [input, setInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
 
   // Ref for the scrollable container
   const containerRef = useRef<HTMLDivElement>(null);
+  // Ref for the input to maintain focus
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom when history updates
   useEffect(() => {
@@ -27,6 +27,13 @@ const SafeModeTerminal: React.FC = () => {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [history]);
+
+  // Keep input focused at all times
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [history]); // Re-focus after each command
 
   const handleCommand = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +44,17 @@ const SafeModeTerminal: React.FC = () => {
     setCommandHistory((prev) => [...prev, input]);
     setHistoryIndex(null);
     setInput("");
+
+    // Check if startx was called and system is ready
+    if (
+      input.trim() === "startx" &&
+      output.includes("Transitioning to desktop")
+    ) {
+      // Small delay for cinematic effect before transitioning
+      setTimeout(() => {
+        if (onComplete) onComplete();
+      }, 1000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -75,7 +93,7 @@ const SafeModeTerminal: React.FC = () => {
         backgroundColor: "#0d0d0d",
         color: "#FFFFFF",
         fontFamily: "VT323, monospace",
-        fontSize: "12px",
+        fontSize: "16px",
         padding: "1rem",
         overflowY: "auto",
         scrollbarWidth: "none",
@@ -89,8 +107,12 @@ const SafeModeTerminal: React.FC = () => {
             style={{
               margin: 0,
               whiteSpace: "pre-wrap",
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
               color: "#ffffff",
               lineHeight: "1.4",
+              fontFamily: "VT323, monospace",
+              fontSize: "16px",
             }}
           >
             {line}
@@ -99,19 +121,32 @@ const SafeModeTerminal: React.FC = () => {
       })}
 
       <form onSubmit={handleCommand} style={{ marginTop: "0.5rem" }}>
-        <span style={{ color: "#ffffff" }}>safemode@root:~$ </span>
+        <span
+          style={{
+            color: "#ffffff",
+            fontFamily: "VT323, monospace",
+            fontSize: "16px",
+          }}
+        >
+          safemode@root:~${" "}
+        </span>
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onBlur={(e) => {
+            // Immediately refocus if input loses focus
+            e.target.focus();
+          }}
           style={{
             background: "transparent",
             border: "none",
             outline: "none",
             color: "#ffffff",
-            fontFamily: "inherit",
-            fontSize: "inherit",
+            fontFamily: "VT323, monospace",
+            fontSize: "16px",
             width: "80%",
           }}
           autoFocus

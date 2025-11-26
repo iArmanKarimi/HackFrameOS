@@ -79,7 +79,7 @@ export const BootScreen: React.FC<{
         backgroundColor: "#0d0d0d",
         color: "#ffffff",
         fontFamily: "VT323, monospace",
-        fontSize: "12px",
+        fontSize: "16px",
         padding: "1rem",
         height: "100vh",
         overflowY: "auto",
@@ -88,7 +88,15 @@ export const BootScreen: React.FC<{
       }}
     >
       {lines.slice(0, index).map((line, idx) => (
-        <pre key={idx} style={{ margin: 0, lineHeight: "1.4" }}>
+        <pre
+          key={idx}
+          style={{
+            margin: 0,
+            lineHeight: "1.4",
+            fontFamily: "VT323, monospace",
+            fontSize: "16px",
+          }}
+        >
           {line}
         </pre>
       ))}
