@@ -13,6 +13,7 @@ import {
   resolveFragment,
   loadModule,
   clearScreen,
+  isSafeModeComplete,
 } from "../../sim/kernel";
 
 // Keep BOOT_LOG co-located with BIOS visuals.
@@ -30,6 +31,7 @@ export {
   resolveFragment,
   loadModule,
   clearScreen,
+  isSafeModeComplete,
 };
 
 /**
@@ -50,6 +52,18 @@ export function runCommand(input: string): string {
   // Mission & guidance
   if (trimmed === "mission") return showMission();
   if (trimmed === "hint") return nextHint();
+
+  // Desktop transition (requires completion)
+  if (trimmed === "startx") {
+    if (!isSafeModeComplete()) {
+      return `[ERROR] System not ready for GUI.
+Complete all critical tasks and enable gfx-module first.
+Use 'mission' to check progress.`;
+    }
+    return `[OK] Starting X server...
+[OK] Display subsystem initialized.
+[OK] Transitioning to desktop environment...`;
+  }
 
   // Module / fragment commands
   if (trimmed.startsWith("load ")) return loadModule(trimmed.slice(5));

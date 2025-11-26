@@ -28,6 +28,7 @@ export const HELP_TEXT = `Available commands:
   fragment [id]     Attempt to resolve a fragment
   mission           Show high-level rehabilitation objectives
   hint              Contextual guidance for the next step
+  startx            Launch desktop GUI (requires completion)
   clear             Clear the terminal screen
 `;
 
@@ -235,6 +236,17 @@ ${lines}
 System exits degraded state when all critical tasks are complete.
 Use 'status', 'load', and 'fragments' to make progress.
 `;
+}
+
+/**
+ * Check if SafeMode rehabilitation is complete.
+ * Requires all critical tasks done AND gfx-module online for GUI transition.
+ */
+export function isSafeModeComplete(): boolean {
+  const criticalTasks = Object.values(TASKS).filter((t) => t.critical);
+  const allCriticalDone = criticalTasks.every((t) => t.done());
+  const gfxOnline = moduleStates["gfx-module"] === "OK";
+  return allCriticalDone && gfxOnline;
 }
 
 export function nextHint(): string {
