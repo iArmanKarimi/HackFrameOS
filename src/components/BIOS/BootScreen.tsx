@@ -74,17 +74,21 @@ export const BootScreen: React.FC<{
   return (
     <div
       ref={containerRef}
+      className="hide-scrollbar"
       style={{
-        backgroundColor: "#0d0d0d", // black background
-        color: "#00ff66", // green text
-        fontFamily: "JetBrains Mono, monospace", // retro monospace font
+        backgroundColor: "#0d0d0d",
+        color: "#ffffff",
+        fontFamily: "VT323, monospace",
+        fontSize: "12px",
         padding: "1rem",
         height: "100vh",
-        overflowY: "auto", // scroll if log exceeds viewport
+        overflowY: "auto",
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
       }}
     >
       {lines.slice(0, index).map((line, idx) => (
-        <pre key={idx} style={{ margin: 0 }}>
+        <pre key={idx} style={{ margin: 0, lineHeight: "1.4" }}>
           {line}
         </pre>
       ))}

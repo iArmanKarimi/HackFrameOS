@@ -1,5 +1,12 @@
+@font-face {
+  font-family: "VT323";
+  src: url("./fonts/VT323-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
-  font-family: "JetBrains Mono", "VT323", monospace;
+  font-family: "VT323", "JetBrains Mono", monospace;
   color: #ffffff;
   background-color: #0d0d0d;
 }
@@ -17,4 +24,9 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+/* Hide scrollbars while keeping scroll functionality */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
