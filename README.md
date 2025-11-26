@@ -1,96 +1,131 @@
 # HackFrameOS
 
-Small dev notes for this project.
+HackFrameOS is a **retro OS rehabilitation simulator** built with React and TypeScript.
 
-## Development
+You’re operating a degraded HackFrameOS image that has dropped into **SAFE MODE**.  
+Through a cinematic boot log and a safe terminal, you bring core subsystems back online — all inside a sandboxed simulation.
 
-Run the Vite dev server:
+## What this is (and isn’t)
 
-```pwsh
+- **All simulated**: Filesystem, networking, and “hacking” are 100% in‑memory. Nothing touches your real OS or network.
+- **Focused scope**: One boot flow, one Safe Mode terminal, a handful of guided tools.
+- **Extensible**: Core logic lives in `src/sim/*`, so you can add new commands and scenarios without touching the UI.
+
+## Project layout
+
+```text
+HackFrameOS
+├── src
+│   ├── main.tsx              # App entry
+│   ├── App.tsx               # Boot → Safe Mode transition
+│   ├── index.css             # Global styles
+│   ├── components
+│   │   └── BIOS
+│   │       ├── BootScreen.tsx       # Animated boot log using BOOT_LOG
+│   │       ├── SafeModeTerminal.tsx # Terminal UI & input handling
+│   │       └── SafeModeCore.ts      # Command router for the sim core
+│   ├── sim
+│   │   ├── kernel.ts          # Modules, fragments, mission, hints
+│   │   ├── fs.ts              # In‑memory filesystem & logs
+│   │   └── net.ts             # Wi‑Fi and connectivity simulation
+│   ├── txt                    # Narrative text fragments (optional)
+│   └── types
+│       └── index.d.ts
+├── public
+│   └── README.md              # Static readme for built bundle
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── postcss.config.cjs
+└── .gitignore
+```
+
+## Running the simulator
+
+```bash
+npm install
 npm run dev
 ```
 
-The app entry HTML is at the project root `index.html` and the client entry is `src/main.tsx`.
+Then open `http://localhost:3000` in your browser, watch the boot log finish, and wait for the Safe Mode prompt.
 
-## Build / Preview
+## Quickstart session
 
-```pwsh
-npm run build
-npm run serve
+Paste this sequence into the terminal to walk a basic rehab path:
+
+```text
+help
+mission
+status
+load auth-module
+load net-module
+load entropy-core
+fragments
+fragment 0001A3F5
+fs ls /var/log
+fs cat /var/log/hackframe.log
+wifi
+wifi scan
+wifi crack ap-01
+wifi connect ap-01
+netcheck
+ping external
 ```
 
-## Notes
+## Command reference (all simulated)
 
-- `public/` is available for static assets. If a duplicate `public/index.html` exists, the project uses the root `index.html` as the app entry.
-- Types for `react-router-dom` are installed as a dev dependency (`@types/react-router-dom`).
+Everything below stays inside an in‑memory sandbox; no real system calls or packets.
 
-# HackFrameOS
+### Boot & status
 
-HackFrameOS is a React application built with TypeScript and styled using Tailwind CSS. This project serves as a template for building modern web applications with a focus on modularity and reusability.
+- `help` – List available commands.
+- `status` – Show module states and unresolved fragment count.
+- `load` / `load [module]` – List or load subsystems.
+- `fragments` – List boot fragments.
+- `fragment [id]` – Attempt to resolve a fragment.
+- `clear` – Clear the terminal.
 
-## Features
+### Mission & guidance
 
-- **React** + **TypeScript**: Modern component patterns with static typing.
-- **Vite**: Fast dev server and optimized production builds.
-- **Retro Boot Flow**: Cinematic boot screen that transitions into a Safe Mode command shell.
+- `mission` – High‑level objectives and which ones are complete.
+- `hint` – Contextual nudge toward the next useful action.
 
-## Project Structure
+### Filesystem (`sim/fs.ts`)
 
-```
-HackFrameOS
-├── src
-│   ├── main.tsx          # Entry point of the application
-│   ├── App.tsx           # Main App component
-│   ├── index.css         # Global CSS styles
-│   ├── components        # Reusable components
-│   │   └── ExampleComponent.tsx
-│   ├── pages             # Application pages
-│   │   └── Home.tsx
-│   ├── hooks             # Custom hooks
-│   │   └── useExample.ts
-│   └── types             # Type definitions
-│       └── index.d.ts
-├── public
-│   └── index.html        # Main HTML file
-├── package.json          # NPM configuration
-├── tsconfig.json         # TypeScript configuration
-├── vite.config.ts        # Vite configuration
-├── tailwind.config.cjs   # Tailwind CSS configuration
-├── postcss.config.cjs    # PostCSS configuration
-├── .gitignore            # Git ignore file
-└── README.md             # Project documentation
-```
+- `fs` – Filesystem help.
+- `fs ls [path]` – List entries under a simulated path (default `/`).
+- `fs cat [path]` – View file contents, e.g. `/var/log/hackframe.log`, `/var/log/net.log`.
 
-## Getting Started
+### Networking (`sim/net.ts`)
 
-To get started with HackFrameOS, follow these steps:
+- `wifi` – Wi‑Fi help and usage.
+- `wifi scan` – List simulated access points.
+- `wifi crack [id]` – Pretend to attack an AP (no real networking).
+- `wifi connect [id]` – Bind the simulated interface to a cracked AP.
+- `netcheck` – Summarize simulated external connectivity state.
+- `ping [core|net|external]` – Probe core services, net‑module, or a fake external host.
 
-1. **Clone the repository**:
+## Dev & tests
 
-   ```
-   git clone <repository-url>
-   cd HackFrameOS
-   ```
+- **Dev server**
 
-2. **Install dependencies**:
+  ```bash
+  npm run dev
+  ```
 
-   ```
-   npm install
-   ```
+- **Build / preview**
 
-3. **Run the development server**:
+  ```bash
+  npm run build
+  npm run serve
+  ```
 
-   ```
-   npm run dev
-   ```
+- **Tests**
 
-4. **Open your browser**:
-   Navigate to `http://localhost:3000` to view the application.
+  ```bash
+  npm test
+  ```
 
-## Contributing
+Vitest covers the simulation core (`sim/kernel`, `sim/net`) and the `SafeModeCore` command router.
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue for any suggestions or improvements.
 
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for more details.
