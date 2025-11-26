@@ -1,5 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { BOOT_LOG } from "./SafeModeCore";
+
+// Interval (in ms) between revealing each boot log line.
+const BOOT_LINE_INTERVAL_MS = 60;
 
 /**
  * BootScreen Component
@@ -11,9 +14,7 @@ import { BOOT_LOG } from "./SafeModeCore";
 export const BootScreen: React.FC<{
   onComplete: () => void;
 }> = ({ onComplete }) => {
-  const speed = 60;
-
-  const lines = React.useMemo(() => BOOT_LOG.split("\n"), []);
+  const lines = useMemo(() => BOOT_LOG.split("\n"), []);
   /**
    * `index` tracks how many lines should currently be visible.
    * We slice the array up to this index to render progressively.
@@ -28,20 +29,32 @@ export const BootScreen: React.FC<{
   /**
    * Effect: reveal one new line at a time.
    * - Stops once all lines are shown.
-   * - Calls `onComplete` after a short pause when finished.
    */
   useEffect(() => {
     if (index >= lines.length) {
-      const completionTimer = setTimeout(() => onComplete(), 800); // cinematic pause before handoff
-      return () => clearTimeout(completionTimer);
+      return;
     }
 
     const timer = setTimeout(() => {
       setIndex((prev) => prev + 1); // reveal next line
-    }, speed);
+    }, BOOT_LINE_INTERVAL_MS);
 
     return () => clearTimeout(timer); // cleanup on unmount or re-render
-  }, [index, lines.length, onComplete, speed]);
+  }, [index, lines.length]);
+
+  /**
+   * Effect: once all lines are visible, wait briefly then notify the parent
+   * via `onComplete` so it can transition to the SafeMode terminal.
+   * - `onComplete` is a dependency here so the latest callback is always used.
+   */
+  useEffect(() => {
+    if (index < lines.length) {
+      return;
+    }
+
+    const completionTimer = setTimeout(() => onComplete(), 800); // cinematic pause before handoff
+    return () => clearTimeout(completionTimer);
+  }, [index, lines.length, onComplete]);
 
   /**
    * Effect: auto-scroll to bottom whenever a new line is added.
@@ -61,7 +74,6 @@ export const BootScreen: React.FC<{
   return (
     <div
       ref={containerRef}
-      className="terminal h-screen overflow-y-scroll no-scrollbar overflow-hidden"
       style={{
         backgroundColor: "#0d0d0d", // black background
         color: "#00ff66", // green text
@@ -69,7 +81,6 @@ export const BootScreen: React.FC<{
         padding: "1rem",
         height: "100vh",
         overflowY: "auto", // scroll if log exceeds viewport
-        overflow: "hidden",
       }}
     >
       {lines.slice(0, index).map((line, idx) => (

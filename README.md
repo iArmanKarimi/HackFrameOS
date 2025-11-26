@@ -30,10 +30,9 @@ HackFrameOS is a React application built with TypeScript and styled using Tailwi
 
 ## Features
 
-- **React**: A JavaScript library for building user interfaces.
-- **TypeScript**: A superset of JavaScript that adds static types.
-- **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
-- **Vite**: A fast build tool that provides a smooth development experience.
+- **React** + **TypeScript**: Modern component patterns with static typing.
+- **Vite**: Fast dev server and optimized production builds.
+- **Retro Boot Flow**: Cinematic boot screen that transitions into a Safe Mode command shell.
 
 ## Project Structure
 

@@ -1,14 +1,13 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Home from './pages/Home';
+import React, { useState } from "react";
+import SafeModeTerminal from "./components/BIOS/SafeModeTerminal";
+import { BootScreen } from "./components/BIOS/BootScreen";
 
 const App: React.FC = () => {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      </Routes>
-    </Router>
+  const [bootDone, setBootDone] = useState(false);
+  return bootDone ? (
+    <SafeModeTerminal />
+  ) : (
+    <BootScreen onComplete={() => setBootDone(true)} />
   );
 };
 

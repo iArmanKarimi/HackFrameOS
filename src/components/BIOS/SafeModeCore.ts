@@ -9,17 +9,28 @@ export const BOOT_BANNER = `${OS_VERSION}
 [BOOT] Display driver.......... MISSING
 [BOOT] Entering fallback terminal (TTY0)
 
+[STATE] Image status: DEGRADED (SAFE MODE)
+[STATE] Operator intervention required to restore core subsystems.
+[HINT] Type 'mission' to view objectives or 'help' for available commands.
+
 [    0.000089] Launching terminal interface...
 `;
 
 export const COMMAND_NOT_FOUND = `bash: command not found. Type 'help' for available commands.`;
 
 export const HELP_TEXT = `Available commands:
-  load           Load subsystems
-  load [module]  Load a specific subsystem
-  status         View current system state
-  fragments      Inspect boot fragments
-  fragment [id]  Attempt to resolve a fragment
+  load              Load subsystems
+  load [module]     Load a specific subsystem
+  status            View current system state
+  fragments         Inspect boot fragments
+  fragment [id]     Attempt to resolve a fragment
+  mission           Show high-level rehabilitation objectives
+  hint              Contextual guidance for the next step
+  wifi              Show Wi-Fi help (simulation)
+  wifi scan         List nearby access points (simulation)
+  wifi crack [id]   Attempt to gain access to an access point (simulation)
+  wifi connect [id] Attach net-module to a cracked access point (simulation)
+  netcheck          Check external connectivity state
 `;
 
 export const MODULE_LISTING = `[LOAD] Available modules:
@@ -86,6 +97,48 @@ const moduleStates: Record<ModuleId, ModuleState> = {
   "gfx-module": "MISSING",
 };
 
+// --- Mission / task tracking for rehab narrative ---
+type TaskId =
+  | "auth-online"
+  | "net-online"
+  | "entropy-online"
+  | "all-fragments"
+  | "gfx-online";
+
+interface Task {
+  label: string;
+  done: () => boolean;
+  critical?: boolean;
+}
+
+const TASKS: Record<TaskId, Task> = {
+  "auth-online": {
+    label: "Initialize auth-module",
+    done: () => moduleStates["auth-module"] === "OK",
+    critical: true,
+  },
+  "net-online": {
+    label: "Bring net-module online",
+    done: () => moduleStates["net-module"] === "OK",
+    critical: true,
+  },
+  "entropy-online": {
+    label: "Stabilize entropy-core",
+    done: () => moduleStates["entropy-core"] === "OK",
+    critical: false,
+  },
+  "all-fragments": {
+    label: "Resolve all boot fragments",
+    done: () => bootFragments.every((f) => f.status === "RESOLVED"),
+    critical: true,
+  },
+  "gfx-online": {
+    label: "Enable gfx-module (exit fallback TTY)",
+    done: () => moduleStates["gfx-module"] === "OK",
+    critical: false,
+  },
+};
+
 // Dependencies (hierarchy)
 const moduleDependencies: Partial<Record<ModuleId, ModuleId>> = {
   "core-utils": "package-core",
@@ -147,6 +200,26 @@ const bootFragments: BootFragment[] = [
   },
 ];
 
+// --- Simulated Wi-Fi / external connectivity layer ---
+type WifiId = "ap-01" | "ap-02" | "ap-ghost";
+
+interface WifiAp {
+  id: WifiId;
+  ssid: string;
+  signal: number; // 0-100
+  locked: boolean;
+  cracked: boolean;
+}
+
+let wifiAps: WifiAp[] = [
+  { id: "ap-01", ssid: "HF_LAB_NET", signal: 78, locked: true, cracked: false },
+  { id: "ap-02", ssid: "Café-Guest", signal: 42, locked: true, cracked: false },
+  { id: "ap-ghost", ssid: "GHOSTLINK", signal: 15, locked: true, cracked: false },
+];
+
+let connectedApId: WifiId | null = null;
+let hasExternalConnectivity = false;
+
 // --- Command implementations ---
 export function showStatus(): string {
   const unresolvedCount = bootFragments.filter(
@@ -169,14 +242,61 @@ export function showStatus(): string {
 `;
 }
 
+export function showMission(): string {
+  const lines = Object.values(TASKS)
+    .map((task) => {
+      const mark = task.done() ? "[x]" : "[ ]";
+      const tag = task.critical ? " (critical)" : "";
+      return `  ${mark} ${task.label}${tag}`;
+    })
+    .join("\n");
+
+  return `[MISSION] Operator objectives:
+${lines}
+
+System exits degraded state when all critical tasks are complete.
+Use 'status', 'load', and 'fragments' to make progress.
+`;
+}
+
+function nextHint(): string {
+  if (moduleStates["auth-module"] !== "OK") {
+    return `[HINT] auth-module is still offline.
+Use 'load auth-module' to bring identity handshake online.`;
+  }
+
+  if (moduleStates["net-module"] !== "OK") {
+    return `[HINT] Network stack is dormant.
+Use 'load net-module' to activate /net/ghost.`;
+  }
+
+  if (moduleStates["entropy-core"] !== "OK") {
+    return `[HINT] Entropy index is pinned at 0.00.
+Use 'load entropy-core' before attempting to resolve entropy-related fragments.`;
+  }
+
+  if (!bootFragments.every((f) => f.status === "RESOLVED")) {
+    return `[HINT] Boot fragments remain unresolved.
+Use 'fragments' to list them and 'fragment [id]' after the relevant module is online.`;
+  }
+
+  if (moduleStates["gfx-module"] !== "OK") {
+    return `[HINT] System is stable but display driver is missing.
+Use 'load package-core' then 'load core-utils' and finally 'load gfx-module'.`;
+  }
+
+  return `[HINT] All critical tasks appear complete.
+Use 'status' to verify system health or explore freely.`;
+}
+
 export function listFragments(): string {
   let resolved = bootFragments.filter((f) => f.status === "RESOLVED");
   let unresolved = bootFragments.filter((f) => f.status === "UNRESOLVED");
   let bootFragmentsSorted = [...resolved, ...unresolved];
   return `[FRAGMENTS] Retrieved boot fragment log...
 ${bootFragmentsSorted
-  .map((f) => ` └─ [${f.id}] [${f.status}] ${f.description}`)
-  .join("\n")}
+      .map((f) => ` └─ [${f.id}] [${f.status}] ${f.description}`)
+      .join("\n")}
 Use 'fragment [id]' to resolve.`;
 }
 
@@ -195,6 +315,98 @@ export function resolveFragment(id: string): string {
 [Status] resolving...
 [OK] Dependency detected: ${frag.origin} active
 [OK] Fragment ${id} resolved`;
+}
+
+// --- Wi-Fi command helpers (simulation only) ---
+function wifiHelp(): string {
+  return `[WIFI] Simulated wireless interface
+  wifi scan            List nearby access points
+  wifi crack [id]      Attempt to gain access (simulation only)
+  wifi connect [id]    Attach to a cracked AP
+  netcheck             Verify external connectivity state
+Note: Requires net-module to be online.`;
+}
+
+function ensureNetOnline(): string | null {
+  if (moduleStates["net-module"] !== "OK") {
+    return `[ERROR] net-module offline. Use 'load net-module' before accessing Wi-Fi tools.`;
+  }
+  return null;
+}
+
+function wifiScan(): string {
+  const netError = ensureNetOnline();
+  if (netError) return netError;
+
+  const lines = wifiAps
+    .map(
+      (ap) =>
+        `  └─ [${ap.id}] ${ap.ssid}  signal=${ap.signal}%  locked=${ap.locked ? "yes" : "no"}  cracked=${ap.cracked ? "yes" : "no"}`
+    )
+    .join("\n");
+
+  return `[WIFI] Nearby access points (simulated):
+${lines}
+Use 'wifi crack [id]' to attempt access.`;
+}
+
+function wifiCrack(id: string): string {
+  const netError = ensureNetOnline();
+  if (netError) return netError;
+
+  const ap = wifiAps.find((a) => a.id === id);
+  if (!ap) return `[ERROR] Access point '${id}' not found. Use 'wifi scan' first.`;
+  if (ap.cracked) return `[WIFI] AP ${id} already cracked.`;
+
+  // Simple deterministic "success" logic: only HF_LAB_NET is actually crackable.
+  if (ap.id === "ap-01") {
+    ap.cracked = true;
+    ap.locked = false;
+    return `[WIFI] Running simulated attack against ${ap.ssid}...
+[OK] Key material reconstructed (simulation only).
+[OK] Access point ${id} marked as cracked. Use 'wifi connect ${id}'.`;
+  }
+
+  return `[WIFI] Attempted attack on ${ap.ssid}...
+[ERROR] Simulation: this AP resists current toolset. Try a different target.`;
+}
+
+function wifiConnect(id: string): string {
+  const netError = ensureNetOnline();
+  if (netError) return netError;
+
+  const ap = wifiAps.find((a) => a.id === id);
+  if (!ap) return `[ERROR] Access point '${id}' not found.`;
+  if (!ap.cracked) {
+    return `[ERROR] Cannot connect to ${id}: access point not cracked in simulation.
+Use 'wifi crack ${id}' first.`;
+  }
+
+  connectedApId = ap.id;
+  hasExternalConnectivity = true;
+
+  return `[WIFI] Interface bound to ${ap.ssid} (${ap.id}).
+[NET] External connectivity: SIMULATED-ONLINE.
+Use 'netcheck' to verify status.`;
+}
+
+function netCheck(): string {
+  if (moduleStates["net-module"] !== "OK") {
+    return `[NETCHECK] net-module: OFFLINE
+[RESULT] External connectivity unavailable.`;
+  }
+
+  if (!connectedApId || !hasExternalConnectivity) {
+    return `[NETCHECK] net-module: ONLINE
+[NETCHECK] Wi-Fi binding: NONE
+[RESULT] No route to external network in simulation.`;
+  }
+
+  const ap = wifiAps.find((a) => a.id === connectedApId);
+  const name = ap ? ap.ssid : connectedApId;
+  return `[NETCHECK] net-module: ONLINE
+[NETCHECK] Wi-Fi binding: ${name}
+[RESULT] External connectivity: SIMULATED-ONLINE.`;
 }
 
 // --- Module loading (with gating + gfx dramatization) ---
@@ -255,6 +467,18 @@ export function runCommand(input: string): string {
   if (trimmed === "status") return showStatus();
   if (trimmed === "fragments") return listFragments();
   if (trimmed === "clear") return clearScreen();
+  if (trimmed === "mission") return showMission();
+  if (trimmed === "hint") return nextHint();
+  if (trimmed === "wifi") return wifiHelp();
+  if (trimmed === "wifi scan") return wifiScan();
+  if (trimmed === "netcheck") return netCheck();
+
+  if (trimmed.startsWith("wifi crack ")) {
+    return wifiCrack(trimmed.slice("wifi crack ".length));
+  }
+  if (trimmed.startsWith("wifi connect ")) {
+    return wifiConnect(trimmed.slice("wifi connect ".length));
+  }
 
   if (trimmed.startsWith("load ")) return loadModule(trimmed.slice(5));
   if (trimmed.startsWith("fragment ")) return resolveFragment(trimmed.slice(9));

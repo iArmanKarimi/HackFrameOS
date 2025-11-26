@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 // --- Bring in your simulation logic ---
 import {
@@ -16,6 +16,16 @@ const SafeModeTerminal: React.FC = () => {
   ]);
   const [input, setInput] = useState("");
 
+  // Ref for the scrollable container
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when history updates
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [history]);
+
   const handleCommand = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -27,13 +37,14 @@ const SafeModeTerminal: React.FC = () => {
 
   return (
     <div
+      ref={containerRef}
+      className="fixed inset-0"
       style={{
         backgroundColor: "#0d0d0d",
-        color: "#00ff66",
-        fontFamily: "JetBrains Mono, monospace",
+        color: "#FFFFFF",
+        fontFamily: "VT323, monospace",
         padding: "1rem",
-        height: "100vh",
-        overflowY: "auto",
+        scrollbarWidth: "none",
       }}
     >
       {history.map((line, idx) => (
@@ -62,4 +73,5 @@ const SafeModeTerminal: React.FC = () => {
     </div>
   );
 };
+
 export default SafeModeTerminal;
