@@ -21,6 +21,33 @@ import {
 // Keep BOOT_LOG co-located with BIOS visuals.
 export { BOOT_LOG } from "./boot-log";
 
+// Available commands for autocomplete
+export const AVAILABLE_COMMANDS = [
+	"help",
+	"load",
+	"status",
+	"fragment",
+	"mission",
+	"hint",
+	"startx",
+	"clear",
+	"wifi",
+	"ping",
+	"netcheck",
+] as const;
+
+// Available modules for autocomplete
+export const AVAILABLE_MODULES = [
+	"auth-module",
+	"net-module",
+	"entropy-core",
+	"locale-config",
+	"time-sync",
+	"package-core",
+	"core-utils",
+	"gfx-module",
+] as const;
+
 export {
 	BOOT_BANNER,
 	HELP_TEXT,
