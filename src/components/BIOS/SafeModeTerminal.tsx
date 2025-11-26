@@ -40,14 +40,25 @@ const SafeModeTerminal: React.FC<{
     if (!input.trim()) return;
 
     const output = runCommand(input);
-    setHistory((prev) => [...prev, `> ${input}`, output]);
-    setCommandHistory((prev) => [...prev, input]);
+    const trimmedInput = input.trim();
+    
+    // Handle clear command - reset history instead of appending
+    if (output === "\x1Bc") {
+      setHistory([]);
+      setCommandHistory((prev) => [...prev, trimmedInput]);
+      setHistoryIndex(null);
+      setInput("");
+      return;
+    }
+
+    setHistory((prev) => [...prev, `> ${trimmedInput}`, output]);
+    setCommandHistory((prev) => [...prev, trimmedInput]);
     setHistoryIndex(null);
     setInput("");
 
     // Check if startx was called and system is ready
     if (
-      input.trim() === "startx" &&
+      trimmedInput === "startx" &&
       output.includes("Transitioning to desktop")
     ) {
       // Small delay for cinematic effect before transitioning
