@@ -108,6 +108,6 @@ export const BOOT_LOG = `
 [    0.001345] Block 0x0000BE: OK
 [    0.001359] Block 0x0000BF: OK
  
-[    0.001373] Finalizing boot environment...
+[    0.001373] Finalizing boot environment
 [    0.001387] Boot sequence complete
 `;

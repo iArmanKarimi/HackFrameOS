@@ -1,5 +1,7 @@
 // In-memory, read-only filesystem simulation for HackFrameOS.
- 
+
+import { format } from "date-fns";
+
 type FsNodeType = "file" | "dir";
  
 interface FsNodeBase {
@@ -158,13 +160,15 @@ export function fsCat(pathArg?: string): string {
 /**
  * Append a log line (with newline) to a simulated file if it exists and is a file.
  * Silent no-op when the path is invalid, to avoid noisy errors during sim.
+ * Automatically adds timestamp using date-fns.
  */
 export function appendLog(path: string, line: string): void {
 	const node = resolvePath(path);
 	if (!node || node.type !== "file") {
 		return;
 	}
-	node.content += `${line}\n`;
+	const timestamp = format(new Date(), "yyyy-MM-dd HH:mm:ss");
+	node.content += `[${timestamp}] ${line}\n`;
 }
  
  

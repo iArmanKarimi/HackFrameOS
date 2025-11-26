@@ -1,13 +1,17 @@
 export { BOOT_LOG } from "../components/BIOS/boot-log";
 import ansiEscapes from "ansi-escapes";
- 
+
 // --- Constants & Boot banner ---
 const OS_VERSION = "HackFrameOS v0.1";
- 
+
+// TTY-authentic formatting: only green for OK, everything else white
+const OK = (text: string) => `\x1b[32m${text}\x1b[0m`; // Green for OK (authentic Linux TTY)
+const plain = (text: string) => text; // Plain white (default)
+
 export const BOOT_BANNER = `${OS_VERSION}
  
-[BOOT] Kernel handshake........ OK
-[BOOT] Memory map.............. OK
+[BOOT] Kernel handshake........ ${OK("OK")}
+[BOOT] Memory map.............. ${OK("OK")}
 [BOOT] Display driver.......... MISSING
 [BOOT] Entering fallback terminal (TTY0)
  
@@ -17,10 +21,10 @@ export const BOOT_BANNER = `${OS_VERSION}
  
 [    0.000089] Launching terminal interface...
 `;
- 
+
 export const COMMAND_NOT_FOUND =
-	"bash: command not found. Type 'help' for available commands.";
- 
+	`bash: command not found. Type 'help' for available commands.`;
+
 export const HELP_TEXT = `Available commands:
 	load              Load subsystems
 	load [module]     Load a specific subsystem
@@ -32,9 +36,10 @@ export const HELP_TEXT = `Available commands:
 	startx            Launch desktop GUI (requires completion)
 	clear             Clear the terminal screen
 `;
- 
+
 export function getModuleListing(): string {
-	const formatStatus = (state: ModuleState) => state === "OK" ? "[OK]" : "[ ]";
+	const formatStatus = (state: ModuleState) =>
+		state === "OK" ? OK("[OK]") : "[ ]";
 	return `[LOAD] Available modules:
 	└─ auth-module      ${formatStatus(moduleStates["auth-module"])}
 	└─ net-module       ${formatStatus(moduleStates["net-module"])}
@@ -47,7 +52,7 @@ export function getModuleListing(): string {
 Type 'load [module]' to activate.
 `;
 }
- 
+
 // --- Module state & types ---
 export type ModuleId =
 	| "auth-module"
@@ -58,9 +63,9 @@ export type ModuleId =
 	| "package-core"
 	| "core-utils"
 	| "gfx-module";
- 
+
 type ModuleState = "OK" | "MISSING";
- 
+
 const moduleStates: Record<ModuleId, ModuleState> = {
 	"auth-module": "MISSING",
 	"net-module": "MISSING",
@@ -71,7 +76,7 @@ const moduleStates: Record<ModuleId, ModuleState> = {
 	"core-utils": "MISSING",
 	"gfx-module": "MISSING",
 };
- 
+
 // --- Mission / task tracking for rehab narrative ---
 type TaskId =
 	| "auth-online"
@@ -79,23 +84,23 @@ type TaskId =
 	| "entropy-online"
 	| "all-fragments"
 	| "gfx-online";
- 
+
 interface Task {
 	label: string;
 	done: () => boolean;
 	critical?: boolean;
 }
- 
+
 // --- Fragments tied to modules ---
 export type FragmentState = "RESOLVED" | "UNRESOLVED";
- 
+
 export interface BootFragment {
 	id: string;
 	description: string;
 	origin: ModuleId;
 	status: FragmentState;
 }
- 
+
 const bootFragments: BootFragment[] = [
 	{
 		id: "0xa3",
@@ -140,7 +145,7 @@ const bootFragments: BootFragment[] = [
 		status: "UNRESOLVED",
 	},
 ];
- 
+
 const TASKS: Record<TaskId, Task> = {
 	"auth-online": {
 		label: "Initialize auth-module",
@@ -168,72 +173,75 @@ const TASKS: Record<TaskId, Task> = {
 		critical: false,
 	},
 };
- 
+
 // Dependencies (hierarchy)
 const moduleDependencies: Partial<Record<ModuleId, ModuleId>> = {
 	"core-utils": "package-core",
 	"gfx-module": "core-utils",
 };
- 
+
 // --- Module outputs (cinematic hard-coded lines) ---
 const MODULE_OUTPUTS: Record<string, string> = {
 	"auth-module": `[LOAD] Subsystem /auth/null initialized  
-[OK] User identity handshake active`,
- 
+${OK("[OK]")} User identity handshake active`,
+
 	"net-module": `[LOAD] Subsystem /net/ghost online  
-[OK] IP stack: 127.0.0.1  
-[OK] Ping loopback: success`,
- 
+${OK("[OK]")} IP stack: 127.0.0.1  
+${OK("[OK]")} Ping loopback: success`,
+
 	"entropy-core": `[LOAD] entropy-core activated  
-[OK] Entropy index: 0.42`,
- 
+${OK("[OK]")} Entropy index: 0.42`,
+
 	"locale-config": `[LOAD] Locale set: en_US.UTF-8  
-[OK] Encoding: UTF-8  
-[OK] Console dimensions fixed`,
- 
+${OK("[OK]")} Encoding: UTF-8  
+${OK("[OK]")} Console dimensions fixed`,
+
 	"time-sync": `[LOAD] Clock sync: internal oscillator  
-[OK] Kernel tick rate: 60Hz  
-[OK] Timezone: UTC`,
- 
+${OK("[OK]")} Kernel tick rate: 60Hz  
+${OK("[OK]")} Timezone: UTC`,
+
 	"package-core": `[LOAD] Package manager initialized  
-[OK] Repositories mounted  
-[OK] Ready to install tools`,
- 
+${OK("[OK]")} Repositories mounted  
+${OK("[OK]")} Ready to install tools`,
+
 	"core-utils": `[LOAD] core-utils online  
-[OK] Added commands: ls, cat, ps, kill, cd, rm, mv`,
+${OK("[OK]")} Added commands: ls, cat, ps, kill, cd, rm, mv`,
 };
- 
+
 // --- Kernel/status helpers ---
 export function showStatus(): string {
 	const unresolvedCount = bootFragments.filter(
 		(f) => f.status === "UNRESOLVED"
 	).length;
- 
+
+	const formatStatus = (state: ModuleState) =>
+		state === "OK" ? OK("[OK]") : "[ ]";
+
 	return `[STATUS] ${OS_VERSION}  
 	Kernel: initialized  
 	Memory: 512KB base / 2048KB extended  
 	Subsystems:
-	└─ auth-module      ${moduleStates["auth-module"] === "OK" ? "[OK]" : "[ ]"}
-	└─ net-module       ${moduleStates["net-module"] === "OK" ? "[OK]" : "[ ]"}
-	└─ entropy-core     ${moduleStates["entropy-core"] === "OK" ? "[OK]" : "[ ]"}
-	└─ locale-config     ${moduleStates["locale-config"] === "OK" ? "[OK]" : "[ ]"}
-	└─ time-sync        ${moduleStates["time-sync"] === "OK" ? "[OK]" : "[ ]"}
-	└─ package-core     ${moduleStates["package-core"] === "OK" ? "[OK]" : "[ ]"}
-		 └─ core-utils    ${moduleStates["core-utils"] === "OK" ? "[OK]" : "[ ]"}
-				└─ gfx-module ${moduleStates["gfx-module"] === "OK" ? "[OK]" : "[ ]"}
-	Boot fragments: ${unresolvedCount} unresolved
+	└─ auth-module      ${formatStatus(moduleStates["auth-module"])}
+	└─ net-module       ${formatStatus(moduleStates["net-module"])}
+	└─ entropy-core     ${formatStatus(moduleStates["entropy-core"])}
+	└─ locale-config     ${formatStatus(moduleStates["locale-config"])}
+	└─ time-sync        ${formatStatus(moduleStates["time-sync"])}
+	└─ package-core     ${formatStatus(moduleStates["package-core"])}
+		 └─ core-utils    ${formatStatus(moduleStates["core-utils"])}
+				└─ gfx-module ${formatStatus(moduleStates["gfx-module"])}
+	Boot fragments: ${unresolvedCount > 0 ? `${unresolvedCount} unresolved` : OK("all resolved")}
 `;
 }
- 
+
 export function showMission(): string {
 	const lines = Object.values(TASKS)
 		.map((task) => {
-			const mark = task.done() ? "[x]" : "[ ]";
+			const mark = task.done() ? OK("[x]") : "[ ]";
 			const tag = task.critical ? " (critical)" : "";
 			return `  ${mark} ${task.label}${tag}`;
 		})
 		.join("\n");
- 
+
 	return `[MISSION] Operator objectives:
 ${lines}
  
@@ -241,7 +249,7 @@ System exits degraded state when all critical tasks are complete.
 Use 'status', 'load', and 'fragment' to make progress.
 `;
 }
- 
+
 /**
  * Check if SafeMode rehabilitation is complete.
  * Requires all critical tasks done AND gfx-module online for GUI transition.
@@ -252,83 +260,85 @@ export function isSafeModeComplete(): boolean {
 	const gfxOnline = moduleStates["gfx-module"] === "OK";
 	return allCriticalDone && gfxOnline;
 }
- 
+
 export function nextHint(): string {
 	if (moduleStates["auth-module"] !== "OK") {
 		return `[HINT] auth-module is still offline.
 Use 'load auth-module' to bring identity handshake online.`;
 	}
- 
+
 	if (moduleStates["net-module"] !== "OK") {
 		return `[HINT] Network stack is dormant.
 Use 'load net-module' to activate /net/ghost.`;
 	}
- 
+
 	if (moduleStates["entropy-core"] !== "OK") {
 		return `[HINT] Entropy index is pinned at 0.00.
 Use 'load entropy-core' before attempting to resolve entropy-related fragments.`;
 	}
- 
+
 	if (!bootFragments.every((f) => f.status === "RESOLVED")) {
 		return `[HINT] Boot fragments remain unresolved.
 Use 'fragment' to list them and 'fragment [id]' after the relevant module is online.`;
 	}
- 
+
 	if (moduleStates["gfx-module"] !== "OK") {
 		return `[HINT] System is stable but display driver is missing.
 Use 'load package-core' then 'load core-utils' and finally 'load gfx-module'.`;
 	}
- 
-	return `[HINT] All critical tasks appear complete.
+
+	return `${OK("[HINT]")} All critical tasks appear complete.
 Use 'status' to verify system health or explore freely.`;
 }
- 
+
 export function listFragments(): string {
 	const resolved = bootFragments.filter((f) => f.status === "RESOLVED");
 	const unresolved = bootFragments.filter((f) => f.status === "UNRESOLVED");
 	const bootFragmentsSorted = [...resolved, ...unresolved];
-	const formatStatus = (status: FragmentState) => status === "RESOLVED" ? "[OK]" : "[ ]";
+	const formatStatus = (status: FragmentState) =>
+		status === "RESOLVED" ? OK("[OK]") : "[ ]";
 	return `[FRAGMENTS] Retrieved boot fragment log...
 ${bootFragmentsSorted
 			.map((f) => ` └─ ${f.id}. ${formatStatus(f.status)} ${f.description}`)
 			.join("\n")}
 Use 'fragment [id]' to resolve.`;
 }
- 
+
 export function resolveFragment(id: string): string {
 	const frag = bootFragments.find((f) => f.id === id);
 	if (!frag) return `[ERROR] Fragment ${id} not found`;
-	if (frag.status === "RESOLVED") return `[OK] Fragment ${id} already resolved`;
- 
+	if (frag.status === "RESOLVED")
+		return `${OK("[OK]")} Fragment ${id} already resolved`;
+
 	if (moduleStates[frag.origin] !== "OK") {
 		return `[ERROR] Fragment ${id} requires ${frag.origin} to be loaded`;
 	}
- 
+
 	frag.status = "RESOLVED";
 	return `[FRAGMENT ${id}]
 [Module] ${frag.origin}
 [Status] resolving...
-[OK] Dependency detected: ${frag.origin} active
-[OK] Fragment ${id} resolved`;
+${OK("[OK]")} Dependency detected: ${frag.origin} active
+${OK("[OK]")} Fragment ${id} resolved`;
 }
- 
+
 // --- Module loading (with gating + gfx dramatization) ---
 let gfxLoadAttempts = 0;
- 
+
 import { appendLog } from "./fs";
- 
+
 export function loadModule(module: string): string {
 	const id = module as ModuleId;
- 
+
 	if (!(id in moduleStates)) {
 		return `[ERROR] Module '${module}' not found. Type 'load' to list available modules.`;
 	}
- 
+
 	const dependency = moduleDependencies[id];
 	if (dependency && moduleStates[dependency] !== "OK") {
 		return `[ERROR] ${id} requires ${dependency} to be loaded`;
 	}
- 
+
 	// Special case: gfx-module
 	if (id === "gfx-module") {
 		// Check if its fragment is resolved
@@ -336,54 +346,54 @@ export function loadModule(module: string): string {
 		if (gfxFrag && gfxFrag.status !== "RESOLVED") {
 			return `[ERROR] gfx-module cannot initialize: unresolved fragment ${gfxFrag.id} (${gfxFrag.description})`;
 		}
- 
+
 		// Dramatic retry sequence
 		gfxLoadAttempts++;
 		if (gfxLoadAttempts === 1) {
 			return `[LOAD] gfx-module initializing...
 [ERROR] Subsystem /core/gfx failed to bind frame buffer.`;
 		}
- 
+
 		moduleStates[id] = "OK";
 		appendLog(
 			"/var/log/hackframe.log",
 			`[OK] gfx-module online, framebuffer bound (simulation only)`
 		);
 		return `[LOAD] gfx-module initializing...
-[OK] Subsystem /core/gfx ready.`;
+${OK("[OK]")} Subsystem /core/gfx ready.`;
 	}
- 
+
 	// Normal modules
 	if (MODULE_OUTPUTS[id]) {
 		moduleStates[id] = "OK";
-		const output = MODULE_OUTPUTS[id];
+		// MODULE_OUTPUTS already has OK() applied, so return as-is
 		appendLog(
 			"/var/log/hackframe.log",
 			`[OK] ${id} loaded into safe-mode kernel (simulation only)`
 		);
-		return output;
+		return MODULE_OUTPUTS[id];
 	}
- 
+
 	moduleStates[id] = "OK";
 	appendLog(
 		"/var/log/hackframe.log",
 		`[OK] ${id} initialized (generic module, simulation only)`
 	);
-	return `[OK] ${id} initialized`;
+	return `${OK("[OK]")} ${id} initialized`;
 }
- 
+
 // --- Clear command ---
 export function clearScreen(): string {
 	return ansiEscapes.clearScreen;
 }
- 
+
 // --- Kernel state helpers (for future reset/inspection) ---
 export function getModuleStates(): Readonly<Record<ModuleId, ModuleState>> {
 	return moduleStates;
 }
- 
+
 export function getBootFragments(): ReadonlyArray<BootFragment> {
 	return bootFragments;
 }
- 
- 
+
+
