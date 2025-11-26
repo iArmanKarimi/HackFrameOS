@@ -1,4 +1,5 @@
 export { BOOT_LOG } from "../components/BIOS/boot-log";
+import ansiEscapes from "ansi-escapes";
 
 // --- Constants & Boot banner ---
 const OS_VERSION = "HackFrameOS v0.1";
@@ -373,7 +374,7 @@ export function loadModule(module: string): string {
 
 // --- Clear command ---
 export function clearScreen(): string {
-  return "\x1Bc";
+  return ansiEscapes.clearScreen;
 }
 
 // --- Kernel state helpers (for future reset/inspection) ---

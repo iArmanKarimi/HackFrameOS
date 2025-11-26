@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import ansiEscapes from "ansi-escapes";
 
 // --- Bring in your simulation logic ---
 import {
@@ -42,7 +43,7 @@ const SafeModeTerminal: React.FC<{
     const trimmedInput = input.trim();
     
     // Handle clear command - reset history instead of appending
-    if (output === "\x1Bc") {
+    if (output === ansiEscapes.clearScreen) {
       setHistory([]);
       setCommandHistory((prev) => [...prev, trimmedInput]);
       setHistoryIndex(null);
