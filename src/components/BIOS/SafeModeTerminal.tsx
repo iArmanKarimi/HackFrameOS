@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import ansiEscapes from "ansi-escapes";
 
 // --- Bring in your simulation logic ---
-import { runCommand, HELP_TEXT, BOOT_BANNER } from "./SafeModeCore";
+import { runCommand, HELP_TEXT, BOOT_BANNER, AVAILABLE_COMMANDS, AVAILABLE_MODULES } from "./SafeModeCore";
 
 // TTY-authentic ANSI color mapping: only green (32) and white (default)
 // Classic Linux TTY terminals are monochrome - white text with green for success
@@ -115,23 +115,27 @@ const AnimatedDots: React.FC<{ text: string }> = ({ text }) => {
 	const [dotCount, setDotCount] = useState(1);
 
 	useEffect(() => {
-		// Start with 1 dot, then change every 1200ms
-		// First change happens after 1200ms (to show 1 dot for full duration)
-		const timeout1 = setTimeout(() => setDotCount(2), 1200);
-		const timeout2 = setTimeout(() => setDotCount(3), 2400);
+		const timeouts: NodeJS.Timeout[] = [];
+		let intervalId: NodeJS.Timeout | undefined;
 		
-		// Then use interval to cycle continuously
-		const interval = setInterval(() => {
-			setDotCount(prev => {
-				if (prev >= 3) return 1;
-				return prev + 1;
-			});
+		// Wait 1200ms before first change (show 1 dot for full duration)
+		const timeout1Id = setTimeout(() => {
+			setDotCount(2);
+			// Wait another 1200ms for 3 dots
+			const timeout2Id = setTimeout(() => {
+				setDotCount(3);
+				// Then start continuous cycling
+				intervalId = setInterval(() => {
+					setDotCount(prev => (prev >= 3 ? 1 : prev + 1));
+				}, 1200);
+			}, 1200);
+			timeouts.push(timeout2Id);
 		}, 1200);
+		timeouts.push(timeout1Id);
 
 		return () => {
-			clearTimeout(timeout1);
-			clearTimeout(timeout2);
-			clearInterval(interval);
+			timeouts.forEach(id => clearTimeout(id));
+			if (intervalId) clearInterval(intervalId);
 		};
 	}, []);
 
@@ -158,6 +162,7 @@ const SafeModeTerminal: React.FC<{
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [loadingText, setLoadingText] = useState("");
+	const [loadingLineIndices, setLoadingLineIndices] = useState<Set<number>>(new Set());
 
 	// Ref for the scrollable container
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -230,6 +235,7 @@ const SafeModeTerminal: React.FC<{
 			// Add loading message to history (TTY-authentic: text stays on screen)
 			setHistory(prev => {
 				loadingHistoryIndex = prev.length;
+				setLoadingLineIndices(prevIndices => new Set([...prevIndices, loadingHistoryIndex]));
 				return [...prev, loadingMessage]; // Will show animated dots on this line
 			});
 			// Simulate processing time (200-600ms depending on command)
@@ -239,7 +245,7 @@ const SafeModeTerminal: React.FC<{
 
 		const output = runCommand(trimmedInput);
 		setIsLoading(false);
-		setLoadingText(""); // Clear loading text
+		// Keep loadingText for rendering static dots, but mark loading as complete
 
 		// Handle clear command - reset history instead of appending
 		if (output === ansiEscapes.clearScreen) {
@@ -288,6 +294,50 @@ const SafeModeTerminal: React.FC<{
 				setInput(commandHistory[nextIndex] ?? "");
 				return nextIndex;
 			});
+		} else if (e.key === "Tab") {
+			e.preventDefault();
+			const trimmed = input.trim();
+			const parts = trimmed.split(/\s+/);
+			const command = parts[0] || "";
+			const currentArg = parts[1] || "";
+
+			// Autocomplete command
+			if (parts.length === 1) {
+				const matches = AVAILABLE_COMMANDS.filter(cmd => cmd.startsWith(command));
+				if (matches.length === 1) {
+					setInput(matches[0] + " ");
+				} else if (matches.length > 1) {
+					// Multiple matches - find common prefix
+					const commonPrefix = matches.reduce((prefix, cmd) => {
+						let i = 0;
+						while (i < prefix.length && i < cmd.length && prefix[i] === cmd[i]) {
+							i++;
+						}
+						return prefix.slice(0, i);
+					}, matches[0]);
+					if (commonPrefix.length > command.length) {
+						setInput(commonPrefix);
+					}
+				}
+			}
+			// Autocomplete module name for "load" command
+			else if (command === "load" && parts.length === 2) {
+				const matches = AVAILABLE_MODULES.filter(module => module.startsWith(currentArg));
+				if (matches.length === 1) {
+					setInput(`load ${matches[0]}`);
+				} else if (matches.length > 1) {
+					const commonPrefix = matches.reduce((prefix, module) => {
+						let i = 0;
+						while (i < prefix.length && i < module.length && prefix[i] === module[i]) {
+							i++;
+						}
+						return prefix.slice(0, i);
+					}, matches[0]);
+					if (commonPrefix.length > currentArg.length) {
+						setInput(`load ${commonPrefix}`);
+					}
+				}
+			}
 		}
 	};
 
@@ -307,8 +357,12 @@ const SafeModeTerminal: React.FC<{
 			}}
 		>
 			{history.map((line, idx) => {
-				// Check if this is the loading line that should show animated dots
-				const isLoadingLine = isLoading && loadingText && line === loadingText;
+				// Check if this is a loading line
+				const isALoadingLine = loadingLineIndices.has(idx);
+				// Check if this is currently loading (show animated dots)
+				const isLoadingLine = isLoading && isALoadingLine && line === loadingText;
+				// Check if this was a loading line that completed (show static dots)
+				const wasLoadingLine = !isLoading && isALoadingLine && line === loadingText;
 				
 				// Check if line contains ANSI codes
 				const hasAnsi = line.includes("\x1b") || line.includes("\u001b");
@@ -330,6 +384,11 @@ const SafeModeTerminal: React.FC<{
 					>
 						{isLoadingLine ? (
 							<AnimatedDots text={loadingText} />
+						) : wasLoadingLine ? (
+							// Show static dots after loading completes
+							<span style={{ fontFamily: "VT323, monospace", fontSize: "16px", color: "#ffffff" }}>
+								{loadingText}...
+							</span>
 						) : (
 							content
 						)}
@@ -337,15 +396,17 @@ const SafeModeTerminal: React.FC<{
 				);
 			})}
 
-			<form onSubmit={handleCommand} style={{ marginTop: "0.5rem" }}>
+			<form onSubmit={handleCommand} style={{ marginTop: "0.5rem", display: "flex", alignItems: "flex-start" }}>
 				<span
 					style={{
 						color: "#ffffff",
 						fontFamily: "VT323, monospace",
 						fontSize: "16px",
+						whiteSpace: "nowrap",
+						flexShrink: 0,
 					}}
 				>
-					safemode@root:~${" "}
+					safemode@root:~$ {" "}
 				</span>
 				<input
 					ref={inputRef}
@@ -364,7 +425,10 @@ const SafeModeTerminal: React.FC<{
 						color: "#ffffff",
 						fontFamily: "VT323, monospace",
 						fontSize: "16px",
-						width: "80%",
+						flex: 1,
+						minWidth: 0,
+						whiteSpace: "nowrap",
+						overflow: "hidden",
 					}}
 					autoFocus
 				/>
