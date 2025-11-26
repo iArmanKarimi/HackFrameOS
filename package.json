@@ -1,48 +1,48 @@
 {
-  "name": "HackFrameOS",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "serve": "vite preview",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\""
-  },
-  "dependencies": {
-    "ansi-escapes": "^7.2.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^24.10.1",
-    "@types/react": "^18.3.11",
-    "@types/react-dom": "^18.3.3",
-    "@typescript-eslint/eslint-plugin": "^8.48.0",
-    "@typescript-eslint/parser": "^8.48.0",
-    "@vitejs/plugin-react": "^5.1.0",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.39.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "jsdom": "^27.2.0",
-    "postcss": "^8.5.6",
-    "prettier": "^3.6.2",
-    "typescript": "^5.6.3",
-    "vite": "^7.1.12",
-    "vitest": "^2.1.4"
-  },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not op_mini all"
-  ]
+	"name": "HackFrameOS",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"serve": "vite preview",
+		"test": "vitest",
+		"lint": "eslint src --ext .ts,.tsx",
+		"lint:fix": "eslint src --ext .ts,.tsx --fix",
+		"format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+		"format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\""
+	},
+	"dependencies": {
+		"ansi-escapes": "^7.2.0",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0"
+	},
+	"devDependencies": {
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.0",
+		"@testing-library/user-event": "^14.6.1",
+		"@types/node": "^24.10.1",
+		"@types/react": "^18.3.11",
+		"@types/react-dom": "^18.3.3",
+		"@typescript-eslint/eslint-plugin": "^8.48.0",
+		"@typescript-eslint/parser": "^8.48.0",
+		"@vitejs/plugin-react": "^5.1.0",
+		"autoprefixer": "^10.4.21",
+		"eslint": "^9.39.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-prettier": "^5.5.4",
+		"eslint-plugin-react": "^7.37.5",
+		"eslint-plugin-react-hooks": "^7.0.1",
+		"jsdom": "^27.2.0",
+		"postcss": "^8.5.6",
+		"prettier": "^3.6.2",
+		"typescript": "^5.6.3",
+		"vite": "^7.1.12",
+		"vitest": "^2.1.4"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	]
 }
