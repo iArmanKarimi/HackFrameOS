@@ -17,6 +17,7 @@ import {
 	clearScreen,
 	isSafeModeComplete,
 } from "../../sim/kernel";
+import { wifiHelp, wifiScan, wifiCrack, wifiConnect, netCheck, ping } from "../../sim/net";
  
 // Keep BOOT_LOG co-located with BIOS visuals.
 export { BOOT_LOG } from "./boot-log";
@@ -78,16 +79,16 @@ const ModuleIdSchema = z.enum([
 const FragmentIdSchema = z.string().regex(/^0x[a-f0-9]{2}$/i);
 
 /**
- * Parse command input using minimist for better argument handling.
+ * Parse command input into command name and arguments.
+ * Simple whitespace-based splitting (minimist import kept for future flag support).
  */
-function parseCommand(input: string): { command: string; args: string[]; parsed: minimist.ParsedArgs } {
+function parseCommand(input: string): { command: string; args: string[] } {
 	const trimmed = input.trim();
 	const parts = trimmed.split(/\s+/);
 	const command = parts[0] || "";
 	const args = parts.slice(1);
-	const parsed = minimist(args, { string: ["_"] });
 
-	return { command, args, parsed };
+	return { command, args };
 }
 
 /**
@@ -112,8 +113,10 @@ export function runCommand(input: string): string {
 
 	// Load command with validation
 	if (command === "load") {
+		// No args: show available modules
 		if (args.length === 0) return getModuleListing();
 		const module = args[0];
+		// Validate module name against known modules to prevent typos/attacks
 		const validation = ModuleIdSchema.safeParse(module);
 		if (!validation.success) {
 			return `[ERROR] Invalid module name '${module}'. Type 'load' to see available modules.`;
@@ -123,8 +126,10 @@ export function runCommand(input: string): string {
 
 	// Fragment command with validation
 	if (command === "fragment") {
+		// No args: list all available fragments
 		if (args.length === 0) return listFragments();
 		const fragmentId = args[0];
+		// Validate hex format (0xXX) to prevent invalid input
 		const validation = FragmentIdSchema.safeParse(fragmentId);
 		if (!validation.success) {
 			return `[ERROR] Invalid fragment ID format. Expected format: 0xXX (e.g., 0xa3)`;
@@ -142,6 +147,36 @@ Use 'mission' to check progress.`;
 		return `[OK] Starting X server...
 [OK] Display subsystem initialized.
 [OK] Transitioning to desktop environment...`;
+	}
+
+	// Network commands
+	if (command === "wifi") {
+		// No args or unknown subcommand: show help
+		if (args.length === 0) return wifiHelp();
+		const subcommand = args[0];
+		if (subcommand === "scan") return wifiScan();
+		if (subcommand === "crack") {
+			// Require AP ID argument
+			if (args.length < 2) return wifiHelp();
+			return wifiCrack(args[1]);
+		}
+		if (subcommand === "connect") {
+			// Require AP ID argument
+			if (args.length < 2) return wifiHelp();
+			return wifiConnect(args[1]);
+		}
+		// Unknown subcommand: show help
+		return wifiHelp();
+	}
+
+	if (command === "ping") {
+		// ping handles its own argument validation (shows usage if missing)
+		return ping(args[0]);
+	}
+
+	if (command === "netcheck") {
+		// No arguments needed
+		return netCheck();
 	}
 
 	// Fallback
