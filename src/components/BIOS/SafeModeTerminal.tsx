@@ -195,6 +195,51 @@ const SafeModeTerminal: React.FC<{
 		};
 	}, []);
 
+	// Global handler for Ctrl+L to prevent browser address bar focus
+	// Note: Some browsers (especially Chrome) intercept Ctrl+L at a very low level
+	// and it's difficult to override. We use capture phase and immediate stop.
+	useEffect(() => {
+		const handleGlobalKeyDown = (e: KeyboardEvent) => {
+			// Only handle if the terminal container or input has focus
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				(e.key === "l" || e.key === "L")
+			) {
+				// Check if terminal has focus
+				const hasTerminalFocus =
+					document.activeElement === inputRef.current ||
+					containerRef.current?.contains(document.activeElement) ||
+					document.activeElement === containerRef.current;
+
+				if (hasTerminalFocus) {
+					e.preventDefault();
+					e.stopPropagation();
+					e.stopImmediatePropagation();
+					setHistory([]);
+					setCommandHistory([]);
+					setHistoryIndex(null);
+					setInput("");
+					// Refocus input to keep terminal active
+					if (inputRef.current) {
+						inputRef.current.focus();
+					}
+					return false;
+				}
+			}
+		};
+
+		// Use capture phase with high priority
+		document.addEventListener("keydown", handleGlobalKeyDown, {
+			capture: true,
+			passive: false,
+		});
+		return () => {
+			document.removeEventListener("keydown", handleGlobalKeyDown, {
+				capture: true,
+			});
+		};
+	}, []);
+
 	const handleCommand = (e: React.FormEvent) => {
 		e.preventDefault();
 		// Trim first, then validate length
@@ -310,6 +355,17 @@ const SafeModeTerminal: React.FC<{
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		// Ctrl+L: Clear screen (standard terminal shortcut)
+		if ((e.ctrlKey || e.metaKey) && (e.key === "l" || e.key === "L")) {
+			e.preventDefault();
+			e.stopPropagation();
+			setHistory([]);
+			setCommandHistory([]);
+			setHistoryIndex(null);
+			setInput("");
+			return;
+		}
+
 		if (e.key === "ArrowUp") {
 			e.preventDefault();
 			if (commandHistory.length === 0) return;
@@ -359,10 +415,24 @@ const SafeModeTerminal: React.FC<{
 		}
 	};
 
+	// Handle Ctrl+L at the container level to prevent browser address bar focus
+	const handleContainerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+		if ((e.ctrlKey || e.metaKey) && (e.key === "l" || e.key === "L")) {
+			e.preventDefault();
+			e.stopPropagation();
+			setHistory([]);
+			setCommandHistory([]);
+			setHistoryIndex(null);
+			setInput("");
+		}
+	};
+
 	return (
 		<div
 			ref={containerRef}
 			className="fixed inset-0 hide-scrollbar"
+			onKeyDown={handleContainerKeyDown}
+			tabIndex={-1}
 			style={{
 				backgroundColor: "#0d0d0d",
 				color: "#FFFFFF",
