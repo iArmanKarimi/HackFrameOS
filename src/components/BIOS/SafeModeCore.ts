@@ -18,6 +18,7 @@ import {
 	isSafeModeComplete,
 } from "../../sim/kernel";
 import { wifiHelp, wifiScan, wifiCrack, wifiConnect, netCheck, ping } from "../../sim/net";
+import { fsHelp, fsLs, fsCat } from "../../sim/fs";
  
 // Keep BOOT_LOG co-located with BIOS visuals.
 export { BOOT_LOG } from "./boot-log";
@@ -35,6 +36,7 @@ export const AVAILABLE_COMMANDS = [
 	"wifi",
 	"ping",
 	"netcheck",
+	"fs",
 ] as const;
 
 // Available modules for autocomplete
@@ -177,6 +179,19 @@ Use 'mission' to check progress.`;
 	if (command === "netcheck") {
 		// No arguments needed
 		return netCheck();
+	}
+
+	// Filesystem commands
+	if (command === "fs") {
+		if (args.length === 0) return fsHelp();
+		const subcommand = args[0];
+		if (subcommand === "ls") {
+			return fsLs(args[1]);
+		}
+		if (subcommand === "cat") {
+			return fsCat(args[1]);
+		}
+		return fsHelp();
 	}
 
 	// Fallback
