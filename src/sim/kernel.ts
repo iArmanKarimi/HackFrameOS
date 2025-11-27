@@ -141,7 +141,7 @@ const bootFragments: BootFragment[] = [
 	{
 		id: "0x8f",
 		description: "framebuffer handshake failed",
-		origin: "gfx-module",
+		origin: "core-utils",
 		status: "UNRESOLVED",
 	},
 ];
