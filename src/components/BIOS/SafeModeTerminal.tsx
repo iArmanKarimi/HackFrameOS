@@ -431,6 +431,7 @@ const SafeModeTerminal: React.FC<{
 						minWidth: 0,
 						whiteSpace: "nowrap",
 						overflow: "hidden",
+						marginLeft: "0.25rem",
 					}}
 					autoFocus
 				/>
