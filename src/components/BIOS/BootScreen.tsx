@@ -1,47 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { BOOT_LOG } from "./SafeModeCore";
 
-// TTY-authentic loading indicator - cycles through text. text.. text... (classic terminal pattern)
-const AnimatedDots: React.FC<{ text: string }> = ({ text }) => {
-	const [dotCount, setDotCount] = useState(1);
-
-	useEffect(() => {
-		const timeouts: NodeJS.Timeout[] = [];
-		let intervalId: NodeJS.Timeout | undefined;
-		
-		// Wait 1200ms before first change (show 1 dot for full duration)
-		const timeout1Id = setTimeout(() => {
-			setDotCount(2);
-			// Wait another 1200ms for 3 dots
-			const timeout2Id = setTimeout(() => {
-				setDotCount(3);
-				// Then start continuous cycling
-				intervalId = setInterval(() => {
-					setDotCount(prev => (prev >= 3 ? 1 : prev + 1));
-				}, 1200);
-			}, 1200);
-			timeouts.push(timeout2Id);
-		}, 1200);
-		timeouts.push(timeout1Id);
-
-		return () => {
-			timeouts.forEach(id => clearTimeout(id));
-			if (intervalId) clearInterval(intervalId);
-		};
-	}, []);
-
-	return (
-		<span
-			style={{
-				fontFamily: "VT323, monospace",
-				fontSize: "16px",
-				color: "#ffffff",
-			}}
-		>
-			{text}{".".repeat(dotCount)}
-		</span>
-	);
-};
 
 // Interval (in ms) between revealing each boot log line.
 // TTY-authentic: lines appear instantly, no smooth animations
@@ -158,7 +117,7 @@ export const BootScreen: React.FC<{
 								color: "#ffffff",
 							}}
 						>
-							{timestamp} <AnimatedDots text="Finalizing boot environment" />
+							{timestamp} Finalizing boot environment...
 						</pre>
 					);
 				}

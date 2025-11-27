@@ -2,63 +2,104 @@ import React, { useState, useRef, useEffect } from "react";
 import ansiEscapes from "ansi-escapes";
 
 // --- Bring in your simulation logic ---
-import { runCommand, HELP_TEXT, BOOT_BANNER, AVAILABLE_COMMANDS, AVAILABLE_MODULES } from "./SafeModeCore";
+import {
+	runCommand,
+	HELP_TEXT,
+	BOOT_BANNER,
+	AVAILABLE_COMMANDS,
+	AVAILABLE_MODULES,
+} from "./SafeModeCore";
 
 // TTY-authentic ANSI color mapping: only green (32) and white (default)
 // Classic Linux TTY terminals are monochrome - white text with green for success
 const ANSI_COLORS: Record<number, string> = {
 	32: "#00ff00", // green (for OK messages - authentic Linux TTY)
-	// All other codes default to white (#ffffff)
 };
 
+const DEFAULT_COLOR = "#ffffff";
+const ANSI_RESET_CODES = [0, 39];
+const ANSI_GREEN_CODE = 32;
+const MAX_ANSI_SEQUENCE_LENGTH = 50;
+const MAX_ANSI_CODE_VALUE = 255;
+const MAX_INPUT_LENGTH = 1000;
+const MAX_HISTORY_SIZE = 1000;
+const MAX_COMMAND_HISTORY = 100;
+
 /**
- * Convert ANSI escape codes to React elements with colors
- * Handles both \x1b[ and \u001b[ escape sequences
+ * Process ANSI color code and update current color
+ */
+function processAnsiCode(code: number): string {
+	if (ANSI_RESET_CODES.includes(code)) {
+		return DEFAULT_COLOR;
+	}
+	if (code === ANSI_GREEN_CODE) {
+		return ANSI_COLORS[ANSI_GREEN_CODE];
+	}
+	return DEFAULT_COLOR;
+}
+
+/**
+ * Add buffered text to parts array
+ */
+function flushBuffer(
+	buffer: string,
+	currentColor: string,
+	parts: React.ReactNode[]
+): void {
+	if (buffer) {
+		parts.push(
+			<span key={`text-${parts.length}`} style={{ color: currentColor }}>
+				{buffer}
+			</span>
+		);
+	}
+}
+
+/**
+ * Converts ANSI escape sequences in text to React elements with inline styles.
+ * Handles two formats: standard (\x1b[XXm) and malformed ([XXm without escape char).
+ * Only processes green (32) for [OK] messages; all other codes default to white.
  */
 function ansiToReact(text: string): React.ReactNode[] {
 	const parts: React.ReactNode[] = [];
-	let currentColor = "#ffffff";
+	let currentColor = DEFAULT_COLOR;
 	let buffer = "";
 	let i = 0;
 
 	while (i < text.length) {
-		// Check for ANSI escape sequence
+		// Check for ANSI escape sequence (both hex and unicode escape forms)
 		const isEscape = text[i] === "\x1b" || text[i] === "\u001b";
 
 		if (isEscape && i + 1 < text.length && text[i + 1] === "[") {
-			// Save any buffered text
-			if (buffer) {
-				parts.push(
-					<span key={`text-${parts.length}`} style={{ color: currentColor }}>
-						{buffer}
-					</span>
-				);
-				buffer = "";
-			}
+			flushBuffer(buffer, currentColor, parts);
+			buffer = "";
 
 			// Find the end of the ANSI sequence (should end with 'm')
+			// Add max iteration limit to prevent infinite loops
 			let j = i + 2;
-			while (j < text.length && text[j] !== "m" && /[\d;]/.test(text[j])) {
+			const maxSearch = Math.min(i + MAX_ANSI_SEQUENCE_LENGTH, text.length);
+			while (j < maxSearch && text[j] !== "m" && /[\d;]/.test(text[j])) {
 				j++;
 			}
 
 			if (j < text.length && text[j] === "m") {
-				// Extract the code sequence
+				// Validate sequence length to prevent DoS
+				if (j - i > MAX_ANSI_SEQUENCE_LENGTH) {
+					// Skip malformed sequence
+					i++;
+					continue;
+				}
+
+				// Extract and process the code sequence (supports multiple codes separated by ';')
 				const codeStr = text.slice(i + 2, j);
 				const codes = codeStr
 					.split(";")
 					.map(c => parseInt(c, 10))
-					.filter(n => !isNaN(n));
+					.filter(n => !isNaN(n) && n >= 0 && n <= MAX_ANSI_CODE_VALUE);
 
 				// Process codes - TTY authentic: only green (32) for OK, everything else white
 				for (const code of codes) {
-					if (code === 0 || code === 39) {
-						currentColor = "#ffffff"; // Reset to white
-					} else if (code === 32) {
-						currentColor = ANSI_COLORS[32]; // Green for OK
-					} else {
-						currentColor = "#ffffff"; // All other codes = white (monochrome TTY)
-					}
+					currentColor = processAnsiCode(code);
 				}
 
 				// Skip the entire escape sequence including the 'm'
@@ -68,25 +109,23 @@ function ansiToReact(text: string): React.ReactNode[] {
 		}
 
 		// Also handle cases where escape char might be missing (just [XXm)
+		// This handles malformed ANSI sequences that might appear in output
 		if (text[i] === "[" && i + 1 < text.length) {
 			const match = text.slice(i).match(/^\[(\d+)m/);
 			if (match) {
-				if (buffer) {
-					parts.push(
-						<span key={`text-${parts.length}`} style={{ color: currentColor }}>
-							{buffer}
-						</span>
-					);
-					buffer = "";
+				// Validate sequence length to prevent DoS
+				if (match[0].length > MAX_ANSI_SEQUENCE_LENGTH) {
+					i++;
+					continue;
 				}
 
+				flushBuffer(buffer, currentColor, parts);
+				buffer = "";
+
 				const code = parseInt(match[1], 10);
-				if (code === 0 || code === 39) {
-					currentColor = "#ffffff"; // Reset to white
-				} else if (code === 32) {
-					currentColor = ANSI_COLORS[32]; // Green for OK
-				} else {
-					currentColor = "#ffffff"; // All other codes = white (monochrome TTY)
+				// Validate code range
+				if (!isNaN(code) && code >= 0 && code <= MAX_ANSI_CODE_VALUE) {
+					currentColor = processAnsiCode(code);
 				}
 
 				i += match[0].length;
@@ -99,75 +138,28 @@ function ansiToReact(text: string): React.ReactNode[] {
 	}
 
 	// Add remaining buffer
-	if (buffer) {
-		parts.push(
-			<span key={`text-${parts.length}`} style={{ color: currentColor }}>
-				{buffer}
-			</span>
-		);
-	}
+	flushBuffer(buffer, currentColor, parts);
 
 	return parts.length > 0 ? parts : [text];
 }
 
-// TTY-authentic loading indicator - cycles through text. text.. text... (classic terminal pattern)
-const AnimatedDots: React.FC<{ text: string }> = ({ text }) => {
-	const [dotCount, setDotCount] = useState(1);
-
-	useEffect(() => {
-		const timeouts: NodeJS.Timeout[] = [];
-		let intervalId: NodeJS.Timeout | undefined;
-		
-		// Wait 1200ms before first change (show 1 dot for full duration)
-		const timeout1Id = setTimeout(() => {
-			setDotCount(2);
-			// Wait another 1200ms for 3 dots
-			const timeout2Id = setTimeout(() => {
-				setDotCount(3);
-				// Then start continuous cycling
-				intervalId = setInterval(() => {
-					setDotCount(prev => (prev >= 3 ? 1 : prev + 1));
-				}, 1200);
-			}, 1200);
-			timeouts.push(timeout2Id);
-		}, 1200);
-		timeouts.push(timeout1Id);
-
-		return () => {
-			timeouts.forEach(id => clearTimeout(id));
-			if (intervalId) clearInterval(intervalId);
-		};
-	}, []);
-
-	return (
-		<span
-			style={{
-				fontFamily: "VT323, monospace",
-				fontSize: "16px",
-				color: "#ffffff",
-			}}
-		>
-			{text}
-			{".".repeat(dotCount)}
-		</span>
-	);
-};
-
 const SafeModeTerminal: React.FC<{
 	onComplete?: () => void;
 }> = ({ onComplete }) => {
+	// Display history: all terminal output (commands + responses) for TTY authenticity
 	const [history, setHistory] = useState<string[]>([BOOT_BANNER]);
 	const [input, setInput] = useState("");
+	// Command history: only user-entered commands for arrow key navigation
 	const [commandHistory, setCommandHistory] = useState<string[]>([]);
+	// Current position in command history when navigating with arrow keys
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
-	const [isLoading, setIsLoading] = useState(false);
-	const [loadingText, setLoadingText] = useState("");
-	const [loadingLineIndices, setLoadingLineIndices] = useState<Set<number>>(new Set());
 
 	// Ref for the scrollable container
 	const containerRef = useRef<HTMLDivElement>(null);
 	// Ref for the input to maintain focus
 	const inputRef = useRef<HTMLInputElement>(null);
+	// Track timeout for startx command cleanup
+	const startxTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	// Auto-scroll to bottom when history updates
 	useEffect(() => {
@@ -183,89 +175,126 @@ const SafeModeTerminal: React.FC<{
 		}
 	}, [history]); // Re-focus after each command
 
-	// Commands that should show loading animation with their loading messages
-	const getLoadingText = (
-		command: string,
-		fullInput: string
-	): string | null => {
-		if (command === "load") {
-			const module = fullInput.split(/\s+/)[1];
-			return module ? `Loading ${module}` : "Loading modules";
-		}
-		if (command === "fragment") {
-			const fragmentId = fullInput.split(/\s+/)[1];
-			return fragmentId
-				? `Resolving fragment ${fragmentId}`
-				: "Listing fragments";
-		}
-		if (command.startsWith("wifi")) {
-			return "Scanning network";
-		}
-		if (command === "ping") {
-			return "Pinging";
-		}
-		if (command === "netcheck") {
-			return "Checking network";
-		}
-		if (command === "startx") {
-			return "Initializing display";
-		}
-		return null;
-	};
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (startxTimeoutRef.current) {
+				clearTimeout(startxTimeoutRef.current);
+			}
+		};
+	}, []);
 
-	const handleCommand = async (e: React.FormEvent) => {
+	const handleCommand = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!input.trim() || isLoading) return;
-
+		// Trim first, then validate length
 		const trimmedInput = input.trim();
-		const command = trimmedInput.split(/\s+/)[0];
-		const loadingMessage = getLoadingText(command, trimmedInput);
+		if (!trimmedInput || trimmedInput.length > MAX_INPUT_LENGTH) return;
 
-		// Add command to history immediately
-		setHistory(prev => [...prev, `> ${trimmedInput}`]);
-		setCommandHistory(prev => [...prev, trimmedInput]);
+		// Add command to display history immediately (before execution) for TTY authenticity
+		// Maintain bounded history to prevent memory issues
+		setHistory(prev => {
+			const newHistory = [...prev, `> ${trimmedInput}`];
+			return newHistory.slice(-MAX_HISTORY_SIZE);
+		});
+		// Add to command history for arrow key navigation (separate from display history)
+		setCommandHistory(prev => {
+			const newHistory = [...prev, trimmedInput];
+			return newHistory.slice(-MAX_COMMAND_HISTORY);
+		});
+		// Reset navigation index when new command is entered
 		setHistoryIndex(null);
 		setInput("");
 
-		// Show loading animation for commands that need it
-		let loadingHistoryIndex = -1;
-		if (loadingMessage) {
-			setLoadingText(loadingMessage);
-			setIsLoading(true);
-			// Add loading message to history (TTY-authentic: text stays on screen)
-			setHistory(prev => {
-				loadingHistoryIndex = prev.length;
-				setLoadingLineIndices(prevIndices => new Set([...prevIndices, loadingHistoryIndex]));
-				return [...prev, loadingMessage]; // Will show animated dots on this line
-			});
-			// Simulate processing time (200-600ms depending on command)
-			const delay = command === "load" || command === "fragment" ? 400 : 200;
-			await new Promise(resolve => setTimeout(resolve, delay));
+		let output: string;
+		try {
+			output = runCommand(trimmedInput);
+		} catch (error) {
+			output = `[ERROR] Command execution failed: ${error instanceof Error ? error.message : String(error)}`;
 		}
-
-		const output = runCommand(trimmedInput);
-		setIsLoading(false);
-		// Keep loadingText for rendering static dots, but mark loading as complete
 
 		// Handle clear command - reset history instead of appending
 		if (output === ansiEscapes.clearScreen) {
 			setHistory([]);
+			setCommandHistory([]);
 			return;
 		}
 
-		// Add output to history (TTY-authentic: all text stays on screen)
-		// Keep the loading message and add output below it
-		setHistory(prev => [...prev, output]);
+		// Add output to history only if non-empty (TTY-authentic: all text stays on screen) (with size limit)
+		if (output) {
+			setHistory(prev => {
+				const newHistory = [...prev, output];
+				return newHistory.slice(-MAX_HISTORY_SIZE);
+			});
+		}
 
 		// Check if startx was called and system is ready
-		if (
-			trimmedInput === "startx" &&
-			output.includes("Transitioning to desktop")
-		) {
+		// Use constant for state detection to avoid magic strings
+		const TRANSITION_MESSAGE = "Transitioning to desktop";
+		if (trimmedInput === "startx" && output.includes(TRANSITION_MESSAGE)) {
+			// Clear any existing timeout
+			if (startxTimeoutRef.current) {
+				clearTimeout(startxTimeoutRef.current);
+			}
 			// Small delay for cinematic effect before transitioning
-			setTimeout(() => {
+			startxTimeoutRef.current = setTimeout(() => {
 				if (onComplete) onComplete();
+				startxTimeoutRef.current = null;
 			}, 1000);
+		}
+	};
+
+	/**
+	 * Find common prefix among an array of strings.
+	 * Used for tab autocomplete: if multiple matches exist, complete to common prefix.
+	 * Example: ["help", "hint"] with input "h" returns "h" (common prefix).
+	 */
+	const findCommonPrefix = (strings: string[]): string => {
+		if (strings.length === 0) return "";
+		return strings.reduce((prefix: string, str) => {
+			let i = 0;
+			// Find the first position where characters differ
+			while (i < prefix.length && i < str.length && prefix[i] === str[i]) {
+				i++;
+			}
+			return prefix.slice(0, i);
+		}, strings[0]);
+	};
+
+	/**
+	 * Handle command autocomplete on Tab key.
+	 * - Single match: complete command and add space for arguments
+	 * - Multiple matches: complete to common prefix only
+	 * - No matches: no action (user sees no autocomplete)
+	 */
+	const handleCommandAutocomplete = (command: string): void => {
+		const matches = AVAILABLE_COMMANDS.filter(cmd => cmd.startsWith(command));
+		if (matches.length === 1) {
+			// Single match: complete and add space for potential arguments
+			setInput(matches[0] + " ");
+		} else if (matches.length > 1) {
+			// Multiple matches: complete only the common prefix
+			const commonPrefix = findCommonPrefix(matches);
+			if (commonPrefix.length > command.length) {
+				setInput(commonPrefix);
+			}
+		}
+		// No matches: do nothing (let user continue typing)
+	};
+
+	/**
+	 * Handle module autocomplete for "load" command
+	 */
+	const handleModuleAutocomplete = (currentArg: string): void => {
+		const matches = AVAILABLE_MODULES.filter(module =>
+			module.startsWith(currentArg)
+		);
+		if (matches.length === 1) {
+			setInput(`load ${matches[0]}`);
+		} else if (matches.length > 1) {
+			const commonPrefix = findCommonPrefix(matches);
+			if (commonPrefix.length > currentArg.length) {
+				setInput(`load ${commonPrefix}`);
+			}
 		}
 	};
 
@@ -274,10 +303,15 @@ const SafeModeTerminal: React.FC<{
 			e.preventDefault();
 			if (commandHistory.length === 0) return;
 			setHistoryIndex(current => {
+				// If at start (null), go to last command; otherwise go to previous
 				const nextIndex =
 					current === null
 						? commandHistory.length - 1
 						: Math.max(0, current - 1);
+				// Validate index is within bounds (defensive check)
+				if (nextIndex < 0 || nextIndex >= commandHistory.length) {
+					return current;
+				}
 				setInput(commandHistory[nextIndex] ?? "");
 				return nextIndex;
 			});
@@ -285,8 +319,9 @@ const SafeModeTerminal: React.FC<{
 			e.preventDefault();
 			if (commandHistory.length === 0) return;
 			setHistoryIndex(current => {
-				if (current === null) return null;
+				if (current === null) return null; // Already at bottom
 				const nextIndex = current + 1;
+				// If past end, clear input and reset to null (bottom of history)
 				if (nextIndex >= commandHistory.length) {
 					setInput("");
 					return null;
@@ -301,43 +336,15 @@ const SafeModeTerminal: React.FC<{
 			const command = parts[0] || "";
 			const currentArg = parts[1] || "";
 
-			// Autocomplete command
+			// Autocomplete command name when typing first word
 			if (parts.length === 1) {
-				const matches = AVAILABLE_COMMANDS.filter(cmd => cmd.startsWith(command));
-				if (matches.length === 1) {
-					setInput(matches[0] + " ");
-				} else if (matches.length > 1) {
-					// Multiple matches - find common prefix
-					const commonPrefix = matches.reduce((prefix, cmd) => {
-						let i = 0;
-						while (i < prefix.length && i < cmd.length && prefix[i] === cmd[i]) {
-							i++;
-						}
-						return prefix.slice(0, i);
-					}, matches[0]);
-					if (commonPrefix.length > command.length) {
-						setInput(commonPrefix);
-					}
-				}
+				handleCommandAutocomplete(command);
 			}
-			// Autocomplete module name for "load" command
+			// Autocomplete module name for "load" command (second argument)
 			else if (command === "load" && parts.length === 2) {
-				const matches = AVAILABLE_MODULES.filter(module => module.startsWith(currentArg));
-				if (matches.length === 1) {
-					setInput(`load ${matches[0]}`);
-				} else if (matches.length > 1) {
-					const commonPrefix = matches.reduce((prefix, module) => {
-						let i = 0;
-						while (i < prefix.length && i < module.length && prefix[i] === module[i]) {
-							i++;
-						}
-						return prefix.slice(0, i);
-					}, matches[0]);
-					if (commonPrefix.length > currentArg.length) {
-						setInput(`load ${commonPrefix}`);
-					}
-				}
+				handleModuleAutocomplete(currentArg);
 			}
+			// Other commands with arguments: no autocomplete (could be extended later)
 		}
 	};
 
@@ -357,20 +364,17 @@ const SafeModeTerminal: React.FC<{
 			}}
 		>
 			{history.map((line, idx) => {
-				// Check if this is a loading line
-				const isALoadingLine = loadingLineIndices.has(idx);
-				// Check if this is currently loading (show animated dots)
-				const isLoadingLine = isLoading && isALoadingLine && line === loadingText;
-				// Check if this was a loading line that completed (show static dots)
-				const wasLoadingLine = !isLoading && isALoadingLine && line === loadingText;
-				
 				// Check if line contains ANSI codes
 				const hasAnsi = line.includes("\x1b") || line.includes("\u001b");
 				const content = hasAnsi ? ansiToReact(line) : line;
 
+				// Use stable key based on index and line length for React reconciliation
+				// Index ensures uniqueness; length helps detect content changes
+				const lineKey = `history-${idx}-${line.length}`;
+
 				return (
 					<pre
-						key={idx}
+						key={lineKey}
 						style={{
 							margin: 0,
 							whiteSpace: "pre-wrap",
@@ -382,21 +386,19 @@ const SafeModeTerminal: React.FC<{
 							fontSize: "16px",
 						}}
 					>
-						{isLoadingLine ? (
-							<AnimatedDots text={loadingText} />
-						) : wasLoadingLine ? (
-							// Show static dots after loading completes
-							<span style={{ fontFamily: "VT323, monospace", fontSize: "16px", color: "#ffffff" }}>
-								{loadingText}...
-							</span>
-						) : (
-							content
-						)}
+						{content}
 					</pre>
 				);
 			})}
 
-			<form onSubmit={handleCommand} style={{ marginTop: "0.5rem", display: "flex", alignItems: "flex-start" }}>
+			<form
+				onSubmit={handleCommand}
+				style={{
+					marginTop: "0.5rem",
+					display: "flex",
+					alignItems: "flex-start",
+				}}
+			>
 				<span
 					style={{
 						color: "#ffffff",
@@ -406,7 +408,7 @@ const SafeModeTerminal: React.FC<{
 						flexShrink: 0,
 					}}
 				>
-					safemode@root:~$ {" "}
+					safemode@root:~${" "}
 				</span>
 				<input
 					ref={inputRef}
