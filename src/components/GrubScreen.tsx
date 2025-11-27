@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { requestFullscreen } from "../../utils/fullscreen";
+import { requestFullscreen } from "../utils/fullscreen";
+import { GRUB_CONFIG } from "../constants";
 
 /**
- * StartScreen Component
+ * GrubScreen Component
  * ---------------------
  * Authentic GRUB boot menu simulation.
  * Text-based interface, keyboard-only interaction.
@@ -42,10 +43,7 @@ const MENU_ITEMS: MenuItem[] = [
 	},
 ];
 
-const BOOT_TIMEOUT_SECONDS = 8;
-const PROGRESS_SEGMENTS = 32;
-
-export const StartScreen: React.FC<{
+export const GrubScreen: React.FC<{
 	onSelectBoot: (value: MenuItemValue) => void;
 	canBootNormal: boolean;
 }> = ({ onSelectBoot, canBootNormal }) => {
@@ -56,7 +54,7 @@ export const StartScreen: React.FC<{
 	const [selectedIndex, setSelectedIndex] = useState(() =>
 		canBootNormal ? 0 : 1
 	);
-	const [countdown, setCountdown] = useState(BOOT_TIMEOUT_SECONDS);
+	const [countdown, setCountdown] = useState(GRUB_CONFIG.BOOT_TIMEOUT_SECONDS);
 	const [autoBootEnabled, setAutoBootEnabled] = useState(true);
 	const [promptVisible, setPromptVisible] = useState(true);
 
@@ -80,10 +78,9 @@ export const StartScreen: React.FC<{
 			try {
 				// Request fullscreen first
 				await requestFullscreen();
-				// Small delay for fullscreen transition
 				setTimeout(() => {
 					onSelectBoot(value);
-				}, 100);
+				}, GRUB_CONFIG.FULLSCREEN_DELAY_MS);
 			} catch (error) {
 				console.error("Failed to enter fullscreen:", error);
 				// Still proceed even if fullscreen fails
@@ -116,8 +113,14 @@ export const StartScreen: React.FC<{
 				return;
 			}
 
-			if (e.key === "Enter") {
+			if (e.key === "Enter" || e.key === "Return") {
 				e.preventDefault();
+				// If auto-boot is paused, resume it
+				if (!autoBootEnabled) {
+					setAutoBootEnabled(true);
+					return;
+				}
+				// Otherwise, boot the selected entry
 				const item = MENU_ITEMS[selectedIndex];
 				const isDisabled = item.value === "normal" && !canBootNormal;
 				if (isDisabled) {
@@ -132,9 +135,18 @@ export const StartScreen: React.FC<{
 			}
 		};
 
-		document.addEventListener("keydown", handleKeyPress);
-		return () => document.removeEventListener("keydown", handleKeyPress);
-	}, [handleSelection, canBootNormal, selectedIndex, preBootUnlocked]);
+		const container = containerRef.current;
+		if (container) {
+			container.addEventListener("keydown", handleKeyPress);
+			return () => container.removeEventListener("keydown", handleKeyPress);
+		}
+	}, [
+		handleSelection,
+		canBootNormal,
+		selectedIndex,
+		preBootUnlocked,
+		autoBootEnabled,
+	]);
 
 	// Keep selection on a bootable entry when lock state changes
 	useEffect(() => {
@@ -208,7 +220,7 @@ export const StartScreen: React.FC<{
 	useEffect(() => {
 		const interval = setInterval(() => {
 			setPromptVisible(prev => !prev);
-		}, 600);
+		}, GRUB_CONFIG.PROMPT_BLINK_INTERVAL_MS);
 		return () => clearInterval(interval);
 	}, []);
 
@@ -218,7 +230,7 @@ export const StartScreen: React.FC<{
 		}
 
 		const handlePreBootKey = (e: KeyboardEvent) => {
-			if (e.key !== "Enter") {
+			if (e.key !== "Enter" && e.key !== "Return") {
 				return;
 			}
 			e.preventDefault();
@@ -232,12 +244,14 @@ export const StartScreen: React.FC<{
 
 	const filledSegments = autoBootEnabled
 		? Math.round(
-				((BOOT_TIMEOUT_SECONDS - countdown) / BOOT_TIMEOUT_SECONDS) *
-					PROGRESS_SEGMENTS
+				((GRUB_CONFIG.BOOT_TIMEOUT_SECONDS - countdown) /
+					GRUB_CONFIG.BOOT_TIMEOUT_SECONDS) *
+					GRUB_CONFIG.PROGRESS_SEGMENTS
 			)
-		: PROGRESS_SEGMENTS;
+		: GRUB_CONFIG.PROGRESS_SEGMENTS;
 	const progressBar =
-		"█".repeat(filledSegments) + "░".repeat(PROGRESS_SEGMENTS - filledSegments);
+		"█".repeat(filledSegments) +
+		"░".repeat(GRUB_CONFIG.PROGRESS_SEGMENTS - filledSegments);
 
 	return (
 		<div

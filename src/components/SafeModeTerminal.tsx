@@ -1,151 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import ansiEscapes from "ansi-escapes";
-
-// --- Bring in your simulation logic ---
 import {
 	runCommand,
-	HELP_TEXT,
 	BOOT_BANNER,
 	AVAILABLE_COMMANDS,
 	AVAILABLE_MODULES,
 } from "./SafeModeCore";
+import { getLoadedModuleCount, getResolvedFragmentCount } from "../os/kernel";
+import { ansiToReact, hasAnsiCodes } from "../utils/ansi";
 import {
-	getLoadedModuleCount,
-	getResolvedFragmentCount,
-} from "../../_deprecated/kernel";
-
-// TTY-authentic ANSI color mapping: only green (32) and white (default)
-// Classic Linux TTY terminals are monochrome - white text with green for success
-const ANSI_COLORS: Record<number, string> = {
-	32: "#00ff00", // green (for OK messages - authentic Linux TTY)
-};
-
-const DEFAULT_COLOR = "#ffffff";
-const ANSI_RESET_CODES = [0, 39];
-const ANSI_GREEN_CODE = 32;
-const MAX_ANSI_SEQUENCE_LENGTH = 50;
-const MAX_ANSI_CODE_VALUE = 255;
-const MAX_INPUT_LENGTH = 1000;
-const MAX_HISTORY_SIZE = 1000;
-const MAX_COMMAND_HISTORY = 100;
-
-/**
- * Process ANSI color code and update current color
- */
-function processAnsiCode(code: number): string {
-	if (ANSI_RESET_CODES.includes(code)) {
-		return DEFAULT_COLOR;
-	}
-	if (code === ANSI_GREEN_CODE) {
-		return ANSI_COLORS[ANSI_GREEN_CODE];
-	}
-	return DEFAULT_COLOR;
-}
-
-/**
- * Add buffered text to parts array
- */
-function flushBuffer(
-	buffer: string,
-	currentColor: string,
-	parts: React.ReactNode[]
-): void {
-	if (buffer) {
-		parts.push(
-			<span key={`text-${parts.length}`} style={{ color: currentColor }}>
-				{buffer}
-			</span>
-		);
-	}
-}
-
-/**
- * Converts ANSI escape sequences in text to React elements with inline styles.
- * Handles two formats: standard (\x1b[XXm) and malformed ([XXm without escape char).
- * Only processes green (32) for [OK] messages; all other codes default to white.
- */
-function ansiToReact(text: string): React.ReactNode[] {
-	const parts: React.ReactNode[] = [];
-	let currentColor = DEFAULT_COLOR;
-	let buffer = "";
-	let i = 0;
-
-	while (i < text.length) {
-		// Check for ANSI escape sequence (both hex and unicode escape forms)
-		const isEscape = text[i] === "\x1b" || text[i] === "\u001b";
-
-		if (isEscape && i + 1 < text.length && text[i + 1] === "[") {
-			flushBuffer(buffer, currentColor, parts);
-			buffer = "";
-
-			// Find the end of the ANSI sequence (should end with 'm')
-			// Add max iteration limit to prevent infinite loops
-			let j = i + 2;
-			const maxSearch = Math.min(i + MAX_ANSI_SEQUENCE_LENGTH, text.length);
-			while (j < maxSearch && text[j] !== "m" && /[\d;]/.test(text[j])) {
-				j++;
-			}
-
-			if (j < text.length && text[j] === "m") {
-				// Validate sequence length to prevent DoS
-				if (j - i > MAX_ANSI_SEQUENCE_LENGTH) {
-					// Skip malformed sequence
-					i++;
-					continue;
-				}
-
-				// Extract and process the code sequence (supports multiple codes separated by ';')
-				const codeStr = text.slice(i + 2, j);
-				const codes = codeStr
-					.split(";")
-					.map(c => parseInt(c, 10))
-					.filter(n => !isNaN(n) && n >= 0 && n <= MAX_ANSI_CODE_VALUE);
-
-				// Process codes - TTY authentic: only green (32) for OK, everything else white
-				for (const code of codes) {
-					currentColor = processAnsiCode(code);
-				}
-
-				// Skip the entire escape sequence including the 'm'
-				i = j + 1;
-				continue;
-			}
-		}
-
-		// Also handle cases where escape char might be missing (just [XXm)
-		// This handles malformed ANSI sequences that might appear in output
-		if (text[i] === "[" && i + 1 < text.length) {
-			const match = text.slice(i).match(/^\[(\d+)m/);
-			if (match) {
-				// Validate sequence length to prevent DoS
-				if (match[0].length > MAX_ANSI_SEQUENCE_LENGTH) {
-					i++;
-					continue;
-				}
-
-				flushBuffer(buffer, currentColor, parts);
-				buffer = "";
-
-				const code = parseInt(match[1], 10);
-				// Validate code range
-				if (!isNaN(code) && code >= 0 && code <= MAX_ANSI_CODE_VALUE) {
-					currentColor = processAnsiCode(code);
-				}
-
-				i += match[0].length;
-				continue;
-			}
-		}
-
-		buffer += text[i];
-		i++;
-	}
-
-	// Add remaining buffer
-	flushBuffer(buffer, currentColor, parts);
-
-	return parts.length > 0 ? parts : [text];
-}
+	findCommonPrefix,
+	getCommandMatches,
+	getModuleMatches,
+} from "../utils/autocomplete";
+import { addToHistory, navigateHistory } from "../utils/commandHistory";
+import { TERMINAL_CONFIG, SAFE_MODE_CONFIG, COLORS } from "../constants";
 
 const SafeModeTerminal: React.FC<{
 	onComplete?: () => void;
@@ -172,6 +41,7 @@ const SafeModeTerminal: React.FC<{
 	// Auto-scroll to bottom when history updates
 	useEffect(() => {
 		if (containerRef.current) {
+			// Force immediate scroll to bottom (no smooth scrolling)
 			containerRef.current.scrollTop = containerRef.current.scrollHeight;
 		}
 	}, [history]);
@@ -195,6 +65,44 @@ const SafeModeTerminal: React.FC<{
 			if (startxTimeoutRef.current) {
 				clearTimeout(startxTimeoutRef.current);
 			}
+		};
+	}, []);
+
+	// Prevent user from scrolling up - always keep at bottom
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+
+		let rafId: number | null = null;
+		const handleScroll = () => {
+			if (!container) return;
+
+			// Cancel any pending scroll correction
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+			}
+
+			// Use requestAnimationFrame to avoid scroll jank
+			rafId = requestAnimationFrame(() => {
+				if (!container) return;
+				const threshold = 10; // Small threshold to account for rounding
+				const isAtBottom =
+					container.scrollTop >=
+					container.scrollHeight - container.clientHeight - threshold;
+
+				// If user scrolled up, force back to bottom
+				if (!isAtBottom) {
+					container.scrollTop = container.scrollHeight;
+				}
+			});
+		};
+
+		container.addEventListener("scroll", handleScroll, { passive: true });
+		return () => {
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+			}
+			container.removeEventListener("scroll", handleScroll);
 		};
 	}, []);
 
@@ -242,22 +150,22 @@ const SafeModeTerminal: React.FC<{
 
 	const handleCommand = (e: React.FormEvent) => {
 		e.preventDefault();
-		// Trim first, then validate length
 		const trimmedInput = input.trim();
-		if (!trimmedInput || trimmedInput.length > MAX_INPUT_LENGTH) return;
+		if (
+			!trimmedInput ||
+			trimmedInput.length > TERMINAL_CONFIG.MAX_INPUT_LENGTH
+		) {
+			return;
+		}
 
-		// Add command to display history immediately (before execution) for TTY authenticity
-		// Maintain bounded history to prevent memory issues
 		setHistory(prev => {
 			const newHistory = [...prev, `> ${trimmedInput}`];
-			return newHistory.slice(-MAX_HISTORY_SIZE);
+			return newHistory.slice(-TERMINAL_CONFIG.MAX_HISTORY_SIZE);
 		});
-		// Add to command history for arrow key navigation (separate from display history)
-		setCommandHistory(prev => {
-			const newHistory = [...prev, trimmedInput];
-			return newHistory.slice(-MAX_COMMAND_HISTORY);
-		});
-		// Reset navigation index when new command is entered
+
+		setCommandHistory(prev =>
+			addToHistory(prev, trimmedInput, TERMINAL_CONFIG.MAX_COMMAND_HISTORY)
+		);
 		setHistoryIndex(null);
 		setInput("");
 
@@ -265,85 +173,51 @@ const SafeModeTerminal: React.FC<{
 		try {
 			output = runCommand(trimmedInput);
 		} catch (error) {
-			output = `[ERROR] Command execution failed: ${error instanceof Error ? error.message : String(error)}`;
+			output = `[ERROR] Command execution failed: ${
+				error instanceof Error ? error.message : String(error)
+			}`;
 		}
 
-		// Handle clear command - reset display history but keep command history for arrow key navigation
 		if (output === ansiEscapes.clearScreen) {
 			setHistory([]);
-			// Don't clear commandHistory - users should still be able to navigate through previous commands
 			return;
 		}
 
-		// Add output to history only if non-empty (TTY-authentic: all text stays on screen) (with size limit)
 		if (output) {
 			setHistory(prev => {
 				const newHistory = [...prev, output];
-				return newHistory.slice(-MAX_HISTORY_SIZE);
+				return newHistory.slice(-TERMINAL_CONFIG.MAX_HISTORY_SIZE);
 			});
 		}
 
-		// Check if startx was called and system is ready
-		// Use constant for state detection to avoid magic strings
-		const TRANSITION_MESSAGE = "Transitioning to desktop";
-		if (trimmedInput === "startx" && output.includes(TRANSITION_MESSAGE)) {
-			// Clear any existing timeout
+		if (
+			trimmedInput === "startx" &&
+			output.includes(SAFE_MODE_CONFIG.TRANSITION_MESSAGE)
+		) {
 			if (startxTimeoutRef.current) {
 				clearTimeout(startxTimeoutRef.current);
 			}
-			// Small delay for cinematic effect before transitioning
 			startxTimeoutRef.current = setTimeout(() => {
 				if (onComplete) onComplete();
 				startxTimeoutRef.current = null;
-			}, 1000);
+			}, SAFE_MODE_CONFIG.TRANSITION_DELAY_MS);
 		}
 	};
 
-	/**
-	 * Find common prefix among an array of strings.
-	 * Used for tab autocomplete: if multiple matches exist, complete to common prefix.
-	 * Example: ["help", "hint"] with input "h" returns "h" (common prefix).
-	 */
-	const findCommonPrefix = (strings: string[]): string => {
-		if (strings.length === 0) return "";
-		return strings.reduce((prefix: string, str) => {
-			let i = 0;
-			// Find the first position where characters differ
-			while (i < prefix.length && i < str.length && prefix[i] === str[i]) {
-				i++;
-			}
-			return prefix.slice(0, i);
-		}, strings[0]);
-	};
-
-	/**
-	 * Handle command autocomplete on Tab key.
-	 * - Single match: complete command and add space for arguments
-	 * - Multiple matches: complete to common prefix only
-	 * - No matches: no action (user sees no autocomplete)
-	 */
 	const handleCommandAutocomplete = (command: string): void => {
-		const matches = AVAILABLE_COMMANDS.filter(cmd => cmd.startsWith(command));
+		const matches = getCommandMatches(command, AVAILABLE_COMMANDS);
 		if (matches.length === 1) {
-			// Single match: complete and add space for potential arguments
 			setInput(matches[0] + " ");
 		} else if (matches.length > 1) {
-			// Multiple matches: complete only the common prefix
 			const commonPrefix = findCommonPrefix(matches);
 			if (commonPrefix.length > command.length) {
 				setInput(commonPrefix);
 			}
 		}
-		// No matches: do nothing (let user continue typing)
 	};
 
-	/**
-	 * Handle module autocomplete for "load" command
-	 */
 	const handleModuleAutocomplete = (currentArg: string): void => {
-		const matches = AVAILABLE_MODULES.filter(module =>
-			module.startsWith(currentArg)
-		);
+		const matches = getModuleMatches(currentArg, AVAILABLE_MODULES);
 		if (matches.length === 1) {
 			setInput(`load ${matches[0]}`);
 		} else if (matches.length > 1) {
@@ -370,31 +244,17 @@ const SafeModeTerminal: React.FC<{
 			e.preventDefault();
 			if (commandHistory.length === 0) return;
 			setHistoryIndex(current => {
-				// If at start (null), go to last command; otherwise go to previous
-				const nextIndex =
-					current === null
-						? commandHistory.length - 1
-						: Math.max(0, current - 1);
-				// Validate index is within bounds (defensive check)
-				if (nextIndex < 0 || nextIndex >= commandHistory.length) {
-					return current;
-				}
-				setInput(commandHistory[nextIndex] ?? "");
-				return nextIndex;
+				const result = navigateHistory(current, "up", commandHistory);
+				setInput(result.command);
+				return result.index;
 			});
 		} else if (e.key === "ArrowDown") {
 			e.preventDefault();
 			if (commandHistory.length === 0) return;
 			setHistoryIndex(current => {
-				if (current === null) return null; // Already at bottom
-				const nextIndex = current + 1;
-				// If past end, clear input and reset to null (bottom of history)
-				if (nextIndex >= commandHistory.length) {
-					setInput("");
-					return null;
-				}
-				setInput(commandHistory[nextIndex] ?? "");
-				return nextIndex;
+				const result = navigateHistory(current, "down", commandHistory);
+				setInput(result.command);
+				return result.index;
 			});
 		} else if (e.key === "Tab") {
 			e.preventDefault();
@@ -443,9 +303,7 @@ const SafeModeTerminal: React.FC<{
 			}}
 		>
 			{history.map((line, idx) => {
-				// Check if line contains ANSI codes
-				const hasAnsi = line.includes("\x1b") || line.includes("\u001b");
-				const content = hasAnsi ? ansiToReact(line) : line;
+				const content = hasAnsiCodes(line) ? ansiToReact(line) : line;
 
 				// Use stable key based on index and line length for React reconciliation
 				// Index ensures uniqueness; length helps detect content changes
@@ -480,14 +338,12 @@ const SafeModeTerminal: React.FC<{
 			>
 				<span
 					style={{
-						// Visual feedback: prompt color changes based on progress
-						// Start red (degraded), transition to yellow, then green as system recovers
 						color:
 							loadedModules >= 6 && resolvedFragments >= 5
-								? "#00ff00" // Green: system mostly recovered
+								? COLORS.GREEN
 								: loadedModules >= 3 || resolvedFragments >= 3
-									? "#ffff00" // Yellow: making progress
-									: "#ff4444", // Red: degraded state
+									? COLORS.YELLOW
+									: COLORS.RED,
 						fontFamily: "VT323, monospace",
 						fontSize: "16px",
 						whiteSpace: "nowrap",

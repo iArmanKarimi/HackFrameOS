@@ -1,22 +1,29 @@
 import React, { useState, useEffect, useCallback } from "react";
-import SafeModeTerminal from "./components/BIOS/SafeModeTerminal";
-import { BootScreen } from "./components/BIOS/BootScreen";
-import { StartScreen } from "./components/BIOS/StartScreen";
-import DesktopShell from "./ui/DesktopShell";
-import { initFilesystem } from "./_deprecated/fs";
-import MemtestScreen from "./components/BIOS/MemtestScreen";
-
-type AppPhase = "start" | "boot" | "safemode" | "desktop" | "memtest";
-type BootTarget = "normal" | "safemode" | "memtest" | "restart";
-const SAFE_MODE_FLAG = "hf:safeModeComplete";
+import SafeModeTerminal from "./components/SafeModeTerminal";
+import { BootScreen } from "./components/BootScreen";
+import { GrubScreen } from "./components/GrubScreen";
+import DesktopShell from "./components/DesktopShell";
+import { initFilesystem } from "./os/fs";
+import MemtestScreen from "./components/MemtestScreen";
+import {
+	APP_PHASES,
+	BOOT_TARGETS,
+	STORAGE_KEYS,
+	type AppPhase,
+	type BootTarget,
+} from "./constants";
 
 const App: React.FC = () => {
-	const [phase, setPhase] = useState<AppPhase>("start");
-	const [bootTarget, setBootTarget] = useState<BootTarget>("safemode");
+	const [phase, setPhase] = useState<AppPhase>(APP_PHASES.START);
+	const [bootTarget, setBootTarget] = useState<BootTarget>(
+		BOOT_TARGETS.SAFEMODE
+	);
 	const [hasCompletedSafeMode, setHasCompletedSafeMode] = useState<boolean>(
 		() => {
 			if (typeof window === "undefined") return false;
-			return window.localStorage.getItem(SAFE_MODE_FLAG) === "true";
+			return (
+				window.localStorage.getItem(STORAGE_KEYS.SAFE_MODE_COMPLETE) === "true"
+			);
 		}
 	);
 
@@ -31,63 +38,67 @@ const App: React.FC = () => {
 
 	const handleBootSelection = useCallback(
 		(target: BootTarget) => {
-			if (target === "restart") {
+			if (target === BOOT_TARGETS.RESTART) {
 				window.location.reload();
 				return;
 			}
 
-			if (target === "memtest") {
-				setPhase("memtest");
+			if (target === BOOT_TARGETS.MEMTEST) {
+				setPhase(APP_PHASES.MEMTEST);
 				return;
 			}
 
-			if (target === "normal" && !hasCompletedSafeMode) {
+			if (target === BOOT_TARGETS.NORMAL && !hasCompletedSafeMode) {
 				console.warn("Normal boot locked until Safe Mode completes.");
 				return;
 			}
 
-			setBootTarget(target === "normal" ? "normal" : "safemode");
-			setPhase("boot");
+			setBootTarget(
+				target === BOOT_TARGETS.NORMAL
+					? BOOT_TARGETS.NORMAL
+					: BOOT_TARGETS.SAFEMODE
+			);
+			setPhase(APP_PHASES.BOOT);
 		},
 		[hasCompletedSafeMode]
 	);
 
 	const handleBootComplete = useCallback(() => {
-		if (bootTarget === "normal") {
-			setPhase("desktop");
+		if (bootTarget === BOOT_TARGETS.NORMAL) {
+			setPhase(APP_PHASES.DESKTOP);
 			return;
 		}
-		setPhase("safemode");
+		setPhase(APP_PHASES.SAFEMODE);
 	}, [bootTarget]);
 
 	const handleSafeModeComplete = useCallback(() => {
 		setHasCompletedSafeMode(true);
 		try {
-			window.localStorage.setItem(SAFE_MODE_FLAG, "true");
+			window.localStorage.setItem(STORAGE_KEYS.SAFE_MODE_COMPLETE, "true");
 		} catch (err) {
 			console.warn("Failed to persist safe mode completion flag:", err);
 		}
-		setPhase("desktop");
+		setPhase(APP_PHASES.DESKTOP);
 	}, []);
 
-	if (phase === "start") {
+	if (phase === APP_PHASES.START) {
 		return (
-			<StartScreen
+			<GrubScreen
 				canBootNormal={hasCompletedSafeMode}
 				onSelectBoot={handleBootSelection}
 			/>
 		);
 	}
 
-	if (phase === "boot") {
+	if (phase === APP_PHASES.BOOT) {
 		return <BootScreen onComplete={handleBootComplete} />;
 	}
 
-	if (phase === "memtest") {
-		return <MemtestScreen onExit={() => setPhase("start")} />;
+	if (phase === APP_PHASES.MEMTEST) {
+		return <MemtestScreen onExit={() => setPhase(APP_PHASES.START)} />;
 	}
 
-	if (phase === "safemode") {
+	if (phase === APP_PHASES.SAFEMODE) {
 		return <SafeModeTerminal onComplete={handleSafeModeComplete} />;
 	}
 

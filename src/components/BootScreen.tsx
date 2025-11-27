@@ -1,10 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { BOOT_LOG } from "./SafeModeCore";
-
-
-// Interval (in ms) between revealing each boot log line.
-// TTY-authentic: lines appear instantly, no smooth animations
-const BOOT_LINE_INTERVAL_MS = 50; // Slightly faster, more authentic to real boot logs
+import { BOOT_SCREEN_CONFIG } from "../constants";
 
 /**
  * BootScreen Component
@@ -38,12 +34,11 @@ export const BootScreen: React.FC<{
 			return;
 		}
 
-		// Check if current line is empty (segment break)
 		const currentLine = lines[index];
 		const isSegmentBreak = currentLine.trim() === "";
-		
-		// Longer pause after segment breaks (300ms), normal pause for regular lines
-		const delay = isSegmentBreak ? 300 : BOOT_LINE_INTERVAL_MS;
+		const delay = isSegmentBreak
+			? BOOT_SCREEN_CONFIG.SEGMENT_BREAK_DELAY_MS
+			: BOOT_SCREEN_CONFIG.LINE_INTERVAL_MS;
 
 		const timer = setTimeout(() => {
 			setIndex(prev => prev + 1); // reveal next line
@@ -62,7 +57,10 @@ export const BootScreen: React.FC<{
 			return;
 		}
 
-		const completionTimer = setTimeout(() => onComplete(), 800); // cinematic pause before handoff
+		const completionTimer = setTimeout(
+			() => onComplete(),
+			BOOT_SCREEN_CONFIG.COMPLETION_DELAY_MS
+		);
 		return () => clearTimeout(completionTimer);
 	}, [index, lines.length, onComplete]);
 
@@ -100,7 +98,7 @@ export const BootScreen: React.FC<{
 			{lines.slice(0, index).map((line, idx) => {
 				// Check if this is the "Finalizing boot environment" line that should have animated dots
 				const isFinalizingLine = line.includes("Finalizing boot environment");
-				
+
 				if (isFinalizingLine) {
 					// Extract the timestamp part (everything before "Finalizing boot environment")
 					const timestampMatch = line.match(/^(\[.*?\])/);
