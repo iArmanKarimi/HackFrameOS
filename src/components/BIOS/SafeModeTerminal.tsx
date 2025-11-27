@@ -9,7 +9,10 @@ import {
 	AVAILABLE_COMMANDS,
 	AVAILABLE_MODULES,
 } from "./SafeModeCore";
-import { getLoadedModuleCount, getResolvedFragmentCount } from "../../sim/kernel";
+import {
+	getLoadedModuleCount,
+	getResolvedFragmentCount,
+} from "../../sim/kernel";
 
 // TTY-authentic ANSI color mapping: only green (32) and white (default)
 // Classic Linux TTY terminals are monochrome - white text with green for success
@@ -154,7 +157,7 @@ const SafeModeTerminal: React.FC<{
 	const [commandHistory, setCommandHistory] = useState<string[]>([]);
 	// Current position in command history when navigating with arrow keys
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
-	
+
 	// Track progress for visual feedback
 	const [loadedModules, setLoadedModules] = useState(0);
 	const [resolvedFragments, setResolvedFragments] = useState(0);
@@ -201,10 +204,7 @@ const SafeModeTerminal: React.FC<{
 	useEffect(() => {
 		const handleGlobalKeyDown = (e: KeyboardEvent) => {
 			// Only handle if the terminal container or input has focus
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				(e.key === "l" || e.key === "L")
-			) {
+			if ((e.ctrlKey || e.metaKey) && (e.key === "l" || e.key === "L")) {
 				// Check if terminal has focus
 				const hasTerminalFocus =
 					document.activeElement === inputRef.current ||
@@ -484,11 +484,12 @@ const SafeModeTerminal: React.FC<{
 					style={{
 						// Visual feedback: prompt color changes based on progress
 						// Start red (degraded), transition to yellow, then green as system recovers
-						color: loadedModules >= 6 && resolvedFragments >= 5
-							? "#00ff00" // Green: system mostly recovered
-							: loadedModules >= 3 || resolvedFragments >= 3
-							? "#ffff00" // Yellow: making progress
-							: "#ff4444", // Red: degraded state
+						color:
+							loadedModules >= 6 && resolvedFragments >= 5
+								? "#00ff00" // Green: system mostly recovered
+								: loadedModules >= 3 || resolvedFragments >= 3
+									? "#ffff00" // Yellow: making progress
+									: "#ff4444", // Red: degraded state
 						fontFamily: "VT323, monospace",
 						fontSize: "16px",
 						whiteSpace: "nowrap",
