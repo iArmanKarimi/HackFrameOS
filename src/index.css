@@ -35,3 +35,26 @@ min-height: 100vh;
 .hide-scrollbar::-webkit-scrollbar {
 	display: none; /* Chrome, Safari, Opera */
 }
+
+/* Terminal-style scrollbar for SafeMode */
+.safemode-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: #333333 #0d0d0d;
+}
+
+.safemode-scrollbar::-webkit-scrollbar {
+	width: 8px;
+}
+
+.safemode-scrollbar::-webkit-scrollbar-track {
+	background: #0d0d0d;
+}
+
+.safemode-scrollbar::-webkit-scrollbar-thumb {
+	background: #333333;
+	border-radius: 4px;
+}
+
+.safemode-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: #444444;
+}
