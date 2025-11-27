@@ -2,37 +2,57 @@
 // This replaces the simple in-memory implementation with a robust, persistent filesystem.
 
 import { format } from "date-fns";
-import BrowserFS from "browserfs";
+
+// BrowserFS will be loaded dynamically to handle ES module compatibility
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let BrowserFS: any = null;
+let browserFSLoadAttempted = false;
 
 // Global filesystem instance - using any for now as browserfs types are complex
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let fsInstance: any = null;
 let isInitialized = false;
+let initializationFailed = false; // Track if initialization failed permanently
 
 // Default filesystem structure
 const DEFAULT_FS_STRUCTURE = {
 	"/README": `HackFrameOS Safe-Mode Simulator
- 
+
+SYSTEM STATUS: DEGRADED
+Last known good state: 2024-01-15 03:42:18 UTC
+Recovery protocol: ACTIVE
+
 This environment is a degraded OS image running in SAFE MODE.
 Nothing here touches your real filesystem or network interfaces.
 Use the terminal to explore, restore subsystems, and inspect logs.
+
+WARNING: System integrity compromised. Operator intervention required.
+All network activity is simulated and remains sandboxed.
 `,
 	"/boot/trace.log":
-		"Boot trace captured from degraded HackFrameOS image.\nRefer to /var/log/boot.log for full kernel stream.\n",
+		"Boot trace captured from degraded HackFrameOS image.\nRefer to /var/log/boot.log for full kernel stream.\nMultiple boot fragments detected with incomplete traces.\n",
 	"/etc/hackframe.conf": `# HackFrameOS configuration (simulated)
 image.state=DEGRADED
 safe_mode=true
 allowed_modules=auth-module,net-module,entropy-core,locale-config,time-sync,package-core,core-utils,gfx-module
 wireless.interface=wlan0
 wireless.mode=managed
+kernel.version=0.1.3-alpha
+build.date=2024-01-15
 `,
 	"/var/log/boot.log":
-		"Boot log stream is mirrored from the BIOS boot sequence.\nUse the BootScreen view to replay the cinematic log.\n",
+		"Boot log stream is mirrored from the BIOS boot sequence.\nUse the BootScreen view to replay the cinematic log.\nMultiple warnings detected during initialization.\n",
 	"/var/log/hackframe.log": `[LOG] HackFrameOS safe-mode terminal initialized
 [LOG] Use 'mission' to view rehabilitation objectives
 [LOG] Network activity is simulated and remains sandboxed
+[LOG] System recovery in progress...
 `,
 	"/var/log/net.log": `[NET] Network log initialized (simulated only)
+[NET] Wireless interface: wlan0 (offline)
+`,
+	"/etc/motd": `HackFrameOS v0.1.3-alpha (build 2024.01.15)
+System is running in SAFE MODE - degraded state detected.
+Type 'mission' to view recovery objectives.
 `,
 };
 
@@ -40,35 +60,113 @@ wireless.mode=managed
  * Initialize the filesystem with IndexedDB backend for persistence.
  * Creates default structure if filesystem is empty (first run).
  */
+async function loadBrowserFS(): Promise<void> {
+	if (browserFSLoadAttempted) {
+		return;
+	}
+	browserFSLoadAttempted = true;
+
+	try {
+		// BrowserFS exports methods directly on the module
+		const browserFSModule = await import("browserfs");
+
+		// BrowserFS methods (configure, BFSRequire, etc.) are exported directly on the module
+		// Check if configure method exists
+		if (typeof browserFSModule.configure === "function") {
+			BrowserFS = browserFSModule;
+			console.log("BrowserFS loaded successfully");
+		} else {
+			// Try default export as fallback
+			BrowserFS = browserFSModule.default || browserFSModule;
+
+			if (BrowserFS && typeof BrowserFS.configure === "function") {
+				console.log("BrowserFS loaded successfully (via default export)");
+			} else {
+				console.warn("BrowserFS module loaded but configure method not found", {
+					hasConfigure: typeof browserFSModule.configure,
+					hasDefault: !!browserFSModule.default,
+					moduleKeys: Object.keys(browserFSModule),
+				});
+				BrowserFS = null;
+				initializationFailed = true;
+			}
+		}
+	} catch (error) {
+		console.error("Failed to load BrowserFS:", error);
+		BrowserFS = null;
+		initializationFailed = true;
+	}
+}
+
 export async function initFilesystem(): Promise<void> {
+	// Load BrowserFS if not already loaded
+	await loadBrowserFS();
+
+	// If BrowserFS is not available, skip initialization gracefully
+	if (!BrowserFS || !BrowserFS.configure) {
+		console.warn("BrowserFS not available - skipping filesystem initialization");
+		isInitialized = true; // Mark as initialized to prevent repeated attempts
+		initializationFailed = true;
+		return;
+	}
+
 	if (isInitialized && fsInstance) {
 		return;
 	}
 
+	// Double-check that configure exists before using it
+	if (!BrowserFS || typeof BrowserFS.configure !== "function") {
+		console.warn("BrowserFS.configure is not available - skipping filesystem initialization");
+		isInitialized = true;
+		initializationFailed = true;
+		return;
+	}
+
 	return new Promise((resolve, reject) => {
-		BrowserFS.configure(
-			{
-				fs: "IndexedDB",
-				options: {
-					storeName: "HackFrameOS",
-					store: window.indexedDB,
-				},
-			},
-			(err) => {
-				if (err) {
-					reject(err);
-					return;
-				}
-
-				fsInstance = BrowserFS.BFSRequire("fs");
-				isInitialized = true;
-
-				// Initialize default structure if filesystem is empty
-				initializeDefaultStructure()
-					.then(() => resolve())
-					.catch(reject);
+		try {
+			if (!BrowserFS || !BrowserFS.configure) {
+				reject(new Error("BrowserFS.configure is not available"));
+				return;
 			}
-		);
+
+			BrowserFS.configure(
+				{
+					fs: "IndexedDB",
+					options: {
+						storeName: "HackFrameOS",
+						store: window.indexedDB,
+					},
+				},
+				(err: Error | null) => {
+					if (err) {
+						console.warn("Failed to configure BrowserFS:", err);
+						reject(err);
+						return;
+					}
+
+					try {
+						if (!BrowserFS || !BrowserFS.BFSRequire) {
+							reject(new Error("BrowserFS.BFSRequire is not available"));
+							return;
+						}
+
+						fsInstance = BrowserFS.BFSRequire("fs");
+						isInitialized = true;
+
+						// Initialize default structure if filesystem is empty
+						initializeDefaultStructure()
+							.then(() => resolve())
+							.catch(reject);
+					} catch (error) {
+						console.warn("Failed to get filesystem instance:", error);
+						reject(error);
+					}
+				}
+			);
+		} catch (error) {
+			console.warn("Failed to initialize BrowserFS:", error);
+			reject(error);
+		}
 	});
 }
 
@@ -82,9 +180,65 @@ async function initializeDefaultStructure(): Promise<void> {
 
 	const fs = fsInstance;
 
+	// Helper for async operations
+	const mkdirAsync = (path: string, options?: any): Promise<void> => {
+		return new Promise((resolve, reject) => {
+			fs.mkdir(path, options, (err: Error | null) => {
+				if (err && (err as any).code !== "EEXIST") {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
+		});
+	};
+
+	const readdirAsync = (path: string): Promise<string[]> => {
+		return new Promise((resolve, reject) => {
+			fs.readdir(path, (err: Error | null, files?: string[]) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(files || []);
+				}
+			});
+		});
+	};
+
+	const accessAsync = (path: string): Promise<void> => {
+		return new Promise((resolve, reject) => {
+			fs.access(path, (err: Error | null) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
+		});
+	};
+
+	const writeFileAsync = (path: string, content: string, encoding: string): Promise<void> => {
+		return new Promise((resolve, reject) => {
+			fs.writeFile(path, content, encoding, (err: Error | null) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
+		});
+	};
+
+	// Ensure root directory exists
+	try {
+		await mkdirAsync("/", { recursive: true });
+	} catch (err) {
+		// Root might already exist, ignore
+	}
+
 	// Check if root directory exists and has content
 	try {
-		const rootContents = fs.readdirSync("/");
+		const rootContents = await readdirAsync("/");
 		// If root is not empty, assume filesystem is already initialized
 		if (rootContents.length > 0) {
 			return;
@@ -99,19 +253,23 @@ async function initializeDefaultStructure(): Promise<void> {
 			// Ensure parent directories exist
 			const dirPath = path.substring(0, path.lastIndexOf("/"));
 			if (dirPath && dirPath !== "/") {
-				fs.mkdirSync(dirPath, { recursive: true });
+				await mkdirAsync(dirPath, { recursive: true });
 			}
 
 			// Check if file exists
 			try {
-				fs.accessSync(path);
+				await accessAsync(path);
 				// File exists, skip initialization
 			} catch {
 				// File doesn't exist, create it
-				fs.writeFileSync(path, content, "utf8");
+				await writeFileAsync(path, content, "utf8");
 			}
 		} catch (err) {
-			console.warn(`Failed to initialize ${path}:`, err);
+			// Only log if it's not an "already exists" error
+			const error = err as any;
+			if (error.code !== "EEXIST" && error.code !== "ENOTSUP") {
+				console.warn(`Failed to initialize ${path}:`, err);
+			}
 		}
 	}
 }
@@ -125,7 +283,8 @@ async function ensureInitialized(): Promise<any> {
 		await initFilesystem();
 	}
 	if (!fsInstance) {
-		throw new Error("Filesystem initialization failed");
+		// Return null instead of throwing to allow graceful degradation
+		return null;
 	}
 	return fsInstance;
 }
@@ -133,11 +292,13 @@ async function ensureInitialized(): Promise<any> {
 /**
  * Get the filesystem instance (synchronous, assumes initialization).
  * Use ensureInitialized() for async initialization.
+ * Returns null if filesystem is not available (graceful degradation).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getFS(): any {
+function getFS(): any | null {
 	if (!fsInstance) {
-		throw new Error("Filesystem not initialized. Call initFilesystem() first.");
+		// Return null instead of throwing to allow graceful degradation
+		return null;
 	}
 	return fsInstance;
 }
@@ -160,13 +321,16 @@ Note: Filesystem is persisted to IndexedDB and survives page reloads.`;
  */
 export function fsLs(pathArg?: string): string {
 	const fs = getFS();
+	if (!fs) {
+		return "ls: filesystem not available (BrowserFS initialization failed)";
+	}
 	const targetPath = pathArg && pathArg.trim().length > 0 ? pathArg.trim() : "/";
 
 	try {
 		const stats = fs.statSync(targetPath);
 
 		if (stats.isFile()) {
-			return `[FS] ls ${targetPath}
+			return `ls ${targetPath}
 	${targetPath}`;
 		}
 
@@ -187,13 +351,13 @@ export function fsLs(pathArg?: string): string {
 							}
 						})
 						.join("\n");
-			return `[FS] ls ${targetPath}
+			return `ls ${targetPath}
 ${listing}`;
 		}
 
-		return `[FS] ls: cannot access '${targetPath}': Invalid file type`;
+		return `ls: cannot access '${targetPath}': Invalid file type`;
 	} catch (err) {
-		return `[FS] ls: cannot access '${targetPath}': No such file or directory`;
+		return `ls: cannot access '${targetPath}': No such file or directory`;
 	}
 }
 
@@ -203,26 +367,29 @@ ${listing}`;
  */
 export function fsCat(pathArg?: string): string {
 	if (!pathArg || !pathArg.trim()) {
-		return "[FS] cat: missing operand\nUsage: fs cat /path/to/file";
+		return "cat: missing operand\nUsage: fs cat /path/to/file";
 	}
 
 	const fs = getFS();
+	if (!fs) {
+		return "cat: filesystem not available (BrowserFS initialization failed)";
+	}
 	const path = pathArg.trim();
 
 	try {
 		const stats = fs.statSync(path);
 
 		if (stats.isDirectory()) {
-			return `[FS] cat: ${path}: Is a directory`;
+			return `cat: ${path}: Is a directory`;
 		}
 
 		if (stats.isFile()) {
 			return fs.readFileSync(path, "utf8");
 		}
 
-		return `[FS] cat: ${path}: Invalid file type`;
+		return `cat: ${path}: Invalid file type`;
 	} catch (err) {
-		return `[FS] cat: ${path}: No such file`;
+		return `cat: ${path}: No such file`;
 	}
 }
 
@@ -238,6 +405,10 @@ export function fsCat(pathArg?: string): string {
 export async function appendLog(path: string, line: string): Promise<void> {
 	try {
 		const fs = await ensureInitialized();
+		if (!fs) {
+			// Filesystem not available, skip silently
+			return;
+		}
 
 		// Check if file exists and is a file
 		try {

@@ -29,10 +29,11 @@ const DesktopShell: React.FC = () => {
 				}}
 			>
 				<h2 style={{ margin: 0, marginBottom: "0.5rem" }}>
-					HackFrameOS Desktop
+					HackFrameOS Desktop v0.1.3-alpha - Recovery Complete
 				</h2>
 				<p style={{ margin: 0, opacity: 0.8 }}>
 					System rehabilitation complete. Desktop environment ready.
+					All critical subsystems online. Network: Operational.
 				</p>
 			</div>
  
@@ -49,6 +50,9 @@ const DesktopShell: React.FC = () => {
 					<p style={{ margin: 0, opacity: 0.8 }}>
 						Module status, network connectivity, and system logs will appear
 						here.
+					</p>
+					<p style={{ margin: "0.5rem 0 0 0", opacity: 0.6, fontSize: "14px" }}>
+						Status: All systems operational | Network: Connected | Boot fragments: Resolved
 					</p>
 				</div>
  

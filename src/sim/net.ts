@@ -18,9 +18,9 @@ interface WifiAp {
 }
 
 let wifiAps: WifiAp[] = [
-	{ id: "ap-01", ssid: "HF_LAB_NET", signal: 78, locked: true, cracked: false },
-	{ id: "ap-02", ssid: "Café-Guest", signal: 42, locked: true, cracked: false },
-	{ id: "ap-ghost", ssid: "GHOSTLINK", signal: 15, locked: true, cracked: false },
+	{ id: "ap-01", ssid: "HF_LAB_NET_5G", signal: 78, locked: true, cracked: false },
+	{ id: "ap-02", ssid: "Café-Guest-2.4", signal: 42, locked: true, cracked: false },
+	{ id: "ap-ghost", ssid: "GHOSTLINK_encrypted", signal: 15, locked: true, cracked: false },
 ];
 
 let connectedApId: WifiId | null = null;
@@ -51,11 +51,17 @@ export function wifiScan(): string {
 	const netError = ensureNetOnline();
 	if (netError) return netError;
 
+	const getSignalQuality = (signal: number): string => {
+		if (signal >= 70) return `${signal}% (strong)`;
+		if (signal >= 40) return `${signal}% (moderate)`;
+		return `${signal}% (weak, unstable)`;
+	};
+
 	const lines = wifiAps
 		.map((ap) => {
 			const status = ap.cracked ? OK("cracked=yes") : "cracked=no";
 			const lockStatus = ap.locked ? "locked=yes" : OK("locked=no");
-			return `  └─ [${ap.id}] ${ap.ssid}  signal=${ap.signal}%  ${lockStatus}  ${status}`;
+			return `  └─ [${ap.id}] ${ap.ssid}  signal=${getSignalQuality(ap.signal)}  ${lockStatus}  ${status}`;
 		})
 		.join("\n");
 
@@ -84,6 +90,9 @@ export function wifiCrack(id: string): string {
 			`[WIFI] Simulated crack succeeded for ${ap.ssid} (${ap.id})`
 		);
 		return `[WIFI] Running simulated attack against ${ap.ssid}...
+[WIFI] Scanning for vulnerabilities...
+[WIFI] Exploiting WPS pin...
+[WIFI] Brute-forcing key space...
 ${OK("[OK]")} Key material reconstructed (simulation only).
 ${OK("[OK]")} Access point ${id} marked as cracked. Use 'wifi connect ${id}'.`;
 	}
@@ -145,7 +154,7 @@ export function ping(targetRaw: string | undefined): string {
 	}
 
 	if (target === "core" || target === "sim://core") {
-		return `[PING] PING core (sim://core)
+		return `[PING] PING core (sim://core) 64 bytes from core: icmp_seq=0 time=0.042ms
 ${OK("[OK]")} Core services reachable inside simulation.`;
 	}
 
@@ -154,7 +163,7 @@ ${OK("[OK]")} Core services reachable inside simulation.`;
 			return `[PING] PING net
 [ERROR] net-module is offline. Use 'load net-module' first.`;
 		}
-		return `[PING] PING net
+		return `[PING] PING net 64 bytes from net: icmp_seq=0 time=0.028ms
 ${OK("[OK]")} net-module responding on loopback route.`;
 	}
 
@@ -163,7 +172,7 @@ ${OK("[OK]")} net-module responding on loopback route.`;
 			return `[PING] PING external
 [ERROR] No simulated external route. Ensure 'net-module' is online and Wi-Fi is connected.`;
 		}
-		return `[PING] PING external
+		return `[PING] PING external 64 bytes from external: icmp_seq=0 time=12.345ms
 ${OK("[OK]")} Simulated external host reachable via current Wi-Fi binding.`;
 	}
 

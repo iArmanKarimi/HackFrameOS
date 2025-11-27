@@ -28,13 +28,19 @@ export const COMMAND_NOT_FOUND =
 export const HELP_TEXT = `Available commands:
 	load              Load subsystems
 	load [module]     Load a specific subsystem
+	                  Example: load auth-module
 	status            View current system state
 	fragment          Inspect boot fragments
 	fragment [id]     Attempt to resolve a fragment
+	                  Example: fragment 0xa3
 	mission           Show high-level rehabilitation objectives
 	hint              Contextual guidance for the next step
 	startx            Launch desktop GUI (requires completion)
 	clear             Clear the terminal screen
+	wifi              Network tools (scan, crack, connect)
+	ping              Test connectivity (core, net, external)
+	netcheck          Verify network status
+	fs                Filesystem tools (ls, cat)
 `;
 
 export function getModuleListing(): string {
@@ -104,43 +110,43 @@ export interface BootFragment {
 const bootFragments: BootFragment[] = [
 	{
 		id: "0xa3",
-		description: "orphaned syscall",
+		description: "orphaned syscall (handler 0x7E missing)",
 		origin: "auth-module",
 		status: "UNRESOLVED",
 	},
 	{
 		id: "0xb7",
-		description: "ghost port pinged",
+		description: "ghost port 0xDEAD pinged from unknown origin",
 		origin: "net-module",
 		status: "UNRESOLVED",
 	},
 	{
 		id: "0xd4",
-		description: "entropy seed missing",
+		description: "entropy seed missing (pool depleted)",
 		origin: "entropy-core",
 		status: "UNRESOLVED",
 	},
 	{
 		id: "0xf2",
-		description: "invalid locale binding",
+		description: "invalid locale binding (encoding mismatch)",
 		origin: "locale-config",
 		status: "UNRESOLVED",
 	},
 	{
 		id: "0x9c",
-		description: "oscillator drift detected",
+		description: "oscillator drift detected (+0.003s)",
 		origin: "time-sync",
 		status: "UNRESOLVED",
 	},
 	{
 		id: "0xe1",
-		description: "repo mount failure",
+		description: "repo mount failure (path /repo/core inaccessible)",
 		origin: "package-core",
 		status: "UNRESOLVED",
 	},
 	{
 		id: "0x8f",
-		description: "framebuffer handshake failed",
+		description: "framebuffer handshake failed (protocol v2.1)",
 		origin: "core-utils",
 		status: "UNRESOLVED",
 	},
@@ -182,30 +188,37 @@ const moduleDependencies: Partial<Record<ModuleId, ModuleId>> = {
 
 // --- Module outputs (cinematic hard-coded lines) ---
 const MODULE_OUTPUTS: Record<string, string> = {
-	"auth-module": `[LOAD] Subsystem /auth/null initialized  
-${OK("[OK]")} User identity handshake active`,
+	"auth-module": `[LOAD] Subsystem /auth/null initialized (protocol v2.1)
+${OK("[OK]")} User identity handshake active
+${OK("[OK]")} Authentication tokens: valid`,
 
-	"net-module": `[LOAD] Subsystem /net/ghost online  
-${OK("[OK]")} IP stack: 127.0.0.1  
-${OK("[OK]")} Ping loopback: success`,
+	"net-module": `[LOAD] Subsystem /net/ghost online
+${OK("[OK]")} IP stack: 127.0.0.1
+${OK("[OK]")} Ping loopback: success (0.042ms)
+${OK("[OK]")} Network interface: wlan0 ready`,
 
-	"entropy-core": `[LOAD] entropy-core activated  
-${OK("[OK]")} Entropy index: 0.42`,
+	"entropy-core": `[LOAD] entropy-core activated
+${OK("[OK]")} Entropy index: 0.42
+${OK("[OK]")} Random pool: seeded`,
 
-	"locale-config": `[LOAD] Locale set: en_US.UTF-8  
-${OK("[OK]")} Encoding: UTF-8  
-${OK("[OK]")} Console dimensions fixed`,
+	"locale-config": `[LOAD] Locale set: en_US.UTF-8
+${OK("[OK]")} Encoding: UTF-8
+${OK("[OK]")} Console dimensions fixed (80x24)
+${OK("[OK]")} Character set: loaded`,
 
-	"time-sync": `[LOAD] Clock sync: internal oscillator  
-${OK("[OK]")} Kernel tick rate: 60Hz  
-${OK("[OK]")} Timezone: UTC`,
+	"time-sync": `[LOAD] Clock sync: internal oscillator
+${OK("[OK]")} Kernel tick rate: 60Hz
+${OK("[OK]")} Timezone: UTC
+${OK("[OK]")} Clock drift: corrected`,
 
-	"package-core": `[LOAD] Package manager initialized  
-${OK("[OK]")} Repositories mounted  
-${OK("[OK]")} Ready to install tools`,
+	"package-core": `[LOAD] Package manager initialized
+${OK("[OK]")} Repositories mounted
+${OK("[OK]")} Ready to install tools
+${OK("[OK]")} Package index: updated`,
 
-	"core-utils": `[LOAD] core-utils online  
-${OK("[OK]")} Added commands: ls, cat, ps, kill, cd, rm, mv`,
+	"core-utils": `[LOAD] core-utils online
+${OK("[OK]")} Added commands: ls, cat, ps, kill, cd, rm, mv
+${OK("[OK]")} Shell utilities: available`,
 };
 
 // --- Kernel/status helpers ---
@@ -311,7 +324,8 @@ export function resolveFragment(id: string): string {
 		return `${OK("[OK]")} Fragment ${id} already resolved`;
 
 	if (moduleStates[frag.origin] !== "OK") {
-		return `[ERROR] Fragment ${id} requires ${frag.origin} to be loaded`;
+		return `[ERROR] Fragment ${id} cannot resolve: dependency ${frag.origin} is offline
+Use 'load ${frag.origin}' to bring the required module online.`;
 	}
 
 	frag.status = "RESOLVED";
@@ -336,7 +350,8 @@ export function loadModule(module: string): string {
 
 	const dependency = moduleDependencies[id];
 	if (dependency && moduleStates[dependency] !== "OK") {
-		return `[ERROR] ${id} requires ${dependency} to be loaded`;
+		return `[ERROR] ${id} cannot initialize: dependency ${dependency} is offline
+Use 'load ${dependency}' first, then retry loading ${id}.`;
 	}
 
 	// Special case: gfx-module
