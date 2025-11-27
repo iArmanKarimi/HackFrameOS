@@ -268,10 +268,10 @@ const SafeModeTerminal: React.FC<{
 			output = `[ERROR] Command execution failed: ${error instanceof Error ? error.message : String(error)}`;
 		}
 
-		// Handle clear command - reset history instead of appending
+		// Handle clear command - reset display history but keep command history for arrow key navigation
 		if (output === ansiEscapes.clearScreen) {
 			setHistory([]);
-			setCommandHistory([]);
+			// Don't clear commandHistory - users should still be able to navigate through previous commands
 			return;
 		}
 
