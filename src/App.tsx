@@ -3,7 +3,7 @@ import SafeModeTerminal from "./components/BIOS/SafeModeTerminal";
 import { BootScreen } from "./components/BIOS/BootScreen";
 import { StartScreen } from "./components/BIOS/StartScreen";
 import DesktopShell from "./ui/DesktopShell";
-import { initFilesystem } from "./sim/fs";
+import { initFilesystem } from "./_deprecated/fs";
 import MemtestScreen from "./components/BIOS/MemtestScreen";
 
 type AppPhase = "start" | "boot" | "safemode" | "desktop" | "memtest";

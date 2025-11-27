@@ -12,7 +12,7 @@ import {
 import {
 	getLoadedModuleCount,
 	getResolvedFragmentCount,
-} from "../../sim/kernel";
+} from "../../_deprecated/kernel";
 
 // TTY-authentic ANSI color mapping: only green (32) and white (default)
 // Classic Linux TTY terminals are monochrome - white text with green for success
@@ -430,7 +430,7 @@ const SafeModeTerminal: React.FC<{
 	return (
 		<div
 			ref={containerRef}
-			className="fixed inset-0 hide-scrollbar"
+			className="fixed inset-0 safemode-scrollbar"
 			onKeyDown={handleContainerKeyDown}
 			tabIndex={-1}
 			style={{
@@ -440,8 +440,6 @@ const SafeModeTerminal: React.FC<{
 				fontSize: "16px",
 				padding: "1rem",
 				overflowY: "auto",
-				scrollbarWidth: "none",
-				msOverflowStyle: "none",
 			}}
 		>
 			{history.map((line, idx) => {

@@ -1,5 +1,5 @@
 // Thin command router for the Safe Mode terminal.
-// Delegates to pure simulation modules under src/sim.
+// Delegates to pure simulation modules under src/_deprecated.
 
 import { z } from "zod";
 import minimist from "minimist";
@@ -16,9 +16,9 @@ import {
 	loadModule,
 	clearScreen,
 	isSafeModeComplete,
-} from "../../sim/kernel";
-import { wifiHelp, wifiScan, wifiCrack, wifiConnect, netCheck, ping } from "../../sim/net";
-import { fsHelp, fsLs, fsCat } from "../../sim/fs";
+} from "../../_deprecated/kernel";
+import { wifiHelp, wifiScan, wifiCrack, wifiConnect, netCheck, ping } from "../../_deprecated/net";
+import { fsHelp, fsLs, fsCat } from "../../_deprecated/fs";
  
 // Keep BOOT_LOG co-located with BIOS visuals.
 export { BOOT_LOG } from "./boot-log";
@@ -95,7 +95,7 @@ function parseCommand(input: string): { command: string; args: string[] } {
 
 /**
  * Route a raw command line into the simulation core.
- * All branching lives here; underlying behavior is implemented in src/sim/*.
+ * All branching lives here; underlying behavior is implemented in src/_deprecated/*.
  * Now uses minimist for argument parsing and zod for validation.
  */
 export function runCommand(input: string): string {
