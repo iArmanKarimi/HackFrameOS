@@ -1,4 +1,4 @@
-export { BOOT_LOG } from "../components/BIOS/boot-log";
+export { BOOT_LOG } from "../components/boot-log";
 import ansiEscapes from "ansi-escapes";
 
 // --- Constants & Boot banner ---
@@ -424,5 +424,4 @@ export function getLoadedModuleCount(): number {
 export function getResolvedFragmentCount(): number {
 	return bootFragments.filter(f => f.status === "RESOLVED").length;
 }
-
 

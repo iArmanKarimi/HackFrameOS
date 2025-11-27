@@ -180,4 +180,3 @@ ${OK("[OK]")} External host reachable via current Wi-Fi binding.`;
 Valid targets: core, net, external.`;
 }
 
-

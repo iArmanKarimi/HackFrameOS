@@ -168,6 +168,62 @@ export async function initFilesystem(): Promise<void> {
 }
 
 /**
+ * Create async wrapper for filesystem operations
+ */
+function createAsyncWrapper(fs: any) {
+	return {
+		mkdir: (path: string, options?: any): Promise<void> => {
+			return new Promise((resolve, reject) => {
+				fs.mkdir(path, options, (err: Error | null) => {
+					if (err && (err as any).code !== "EEXIST") {
+						reject(err);
+					} else {
+						resolve();
+					}
+				});
+			});
+		},
+		readdir: (path: string): Promise<string[]> => {
+			return new Promise((resolve, reject) => {
+				fs.readdir(path, (err: Error | null, files?: string[]) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(files || []);
+					}
+				});
+			});
+		},
+		access: (path: string): Promise<void> => {
+			return new Promise((resolve, reject) => {
+				fs.access(path, (err: Error | null) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve();
+					}
+				});
+			});
+		},
+		writeFile: (
+			path: string,
+			content: string,
+			encoding: string
+		): Promise<void> => {
+			return new Promise((resolve, reject) => {
+				fs.writeFile(path, content, encoding, (err: Error | null) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve();
+					}
+				});
+			});
+		},
+	};
+}
+
+/**
  * Initialize default filesystem structure if it doesn't exist.
  */
 async function initializeDefaultStructure(): Promise<void> {
@@ -176,67 +232,16 @@ async function initializeDefaultStructure(): Promise<void> {
 	}
 
 	const fs = fsInstance;
+	const asyncFs = createAsyncWrapper(fs);
 
-	// Helper for async operations
-	const mkdirAsync = (path: string, options?: any): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			fs.mkdir(path, options, (err: Error | null) => {
-				if (err && (err as any).code !== "EEXIST") {
-					reject(err);
-				} else {
-					resolve();
-				}
-			});
-		});
-	};
-
-	const readdirAsync = (path: string): Promise<string[]> => {
-		return new Promise((resolve, reject) => {
-			fs.readdir(path, (err: Error | null, files?: string[]) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(files || []);
-				}
-			});
-		});
-	};
-
-	const accessAsync = (path: string): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			fs.access(path, (err: Error | null) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve();
-				}
-			});
-		});
-	};
-
-	const writeFileAsync = (path: string, content: string, encoding: string): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			fs.writeFile(path, content, encoding, (err: Error | null) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve();
-				}
-			});
-		});
-	};
-
-	// Ensure root directory exists
 	try {
-		await mkdirAsync("/", { recursive: true });
+		await asyncFs.mkdir("/", { recursive: true });
 	} catch (err) {
 		// Root might already exist, ignore
 	}
 
-	// Check if root directory exists and has content
 	try {
-		const rootContents = await readdirAsync("/");
-		// If root is not empty, assume filesystem is already initialized
+		const rootContents = await asyncFs.readdir("/");
 		if (rootContents.length > 0) {
 			return;
 		}
@@ -244,25 +249,19 @@ async function initializeDefaultStructure(): Promise<void> {
 		// Root doesn't exist or is empty, proceed with initialization
 	}
 
-	// Create directory structure and files
 	for (const [path, content] of Object.entries(DEFAULT_FS_STRUCTURE)) {
 		try {
-			// Ensure parent directories exist
 			const dirPath = path.substring(0, path.lastIndexOf("/"));
 			if (dirPath && dirPath !== "/") {
-				await mkdirAsync(dirPath, { recursive: true });
+				await asyncFs.mkdir(dirPath, { recursive: true });
 			}
 
-			// Check if file exists
 			try {
-				await accessAsync(path);
-				// File exists, skip initialization
+				await asyncFs.access(path);
 			} catch {
-				// File doesn't exist, create it
-				await writeFileAsync(path, content, "utf8");
+				await asyncFs.writeFile(path, content, "utf8");
 			}
 		} catch (err) {
-			// Only log if it's not an "already exists" error
 			const error = err as any;
 			if (error.code !== "EEXIST" && error.code !== "ENOTSUP") {
 				console.warn(`Failed to initialize ${path}:`, err);
