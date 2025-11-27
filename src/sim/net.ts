@@ -32,9 +32,9 @@ function isModuleOnline(id: ModuleId): boolean {
 }
 
 export function wifiHelp(): string {
-	return `[WIFI] Simulated wireless interface
+	return `[WIFI] Wireless interface
 	wifi scan            List nearby access points
-	wifi crack [id]      Attempt to gain access (simulation only)
+	wifi crack [id]      Attempt to gain access
 	wifi connect [id]    Attach to a cracked AP
 	netcheck             Verify external connectivity state
 Note: Requires net-module to be online.`;
@@ -67,7 +67,7 @@ export function wifiScan(): string {
 
 	appendLog("/var/log/net.log", "[WIFI] Scan requested via safe-mode terminal");
 
-	return `[WIFI] Nearby access points (simulated):
+	return `[WIFI] Nearby access points:
 ${lines}
 Use 'wifi crack [id]' to attempt access.`;
 }
@@ -87,22 +87,22 @@ export function wifiCrack(id: string): string {
 		ap.locked = false;
 		appendLog(
 			"/var/log/net.log",
-			`[WIFI] Simulated crack succeeded for ${ap.ssid} (${ap.id})`
+			`[WIFI] Crack succeeded for ${ap.ssid} (${ap.id})`
 		);
-		return `[WIFI] Running simulated attack against ${ap.ssid}...
+		return `[WIFI] Running attack against ${ap.ssid}...
 [WIFI] Scanning for vulnerabilities...
 [WIFI] Exploiting WPS pin...
 [WIFI] Brute-forcing key space...
-${OK("[OK]")} Key material reconstructed (simulation only).
+${OK("[OK]")} Key material reconstructed.
 ${OK("[OK]")} Access point ${id} marked as cracked. Use 'wifi connect ${id}'.`;
 	}
 
 	appendLog(
 		"/var/log/net.log",
-		`[WIFI] Simulated crack failed for ${ap.ssid} (${ap.id})`
+		`[WIFI] Crack failed for ${ap.ssid} (${ap.id})`
 	);
 	return `[WIFI] Attempted attack on ${ap.ssid}...
-[ERROR] Simulation: this AP resists current toolset. Try a different target.`;
+[ERROR] This AP resists current toolset. Try a different target.`;
 }
 
 export function wifiConnect(id: string): string {
@@ -112,7 +112,7 @@ export function wifiConnect(id: string): string {
 	const ap = wifiAps.find((a) => a.id === id);
 	if (!ap) return `[ERROR] Access point '${id}' not found.`;
 	if (!ap.cracked) {
-		return `[ERROR] Cannot connect to ${id}: access point not cracked in simulation.
+		return `[ERROR] Cannot connect to ${id}: access point not cracked.
 Use 'wifi crack ${id}' first.`;
 	}
 
@@ -120,11 +120,11 @@ Use 'wifi crack ${id}' first.`;
 	hasExternalConnectivity = true;
 	appendLog(
 		"/var/log/net.log",
-		`[WIFI] Interface bound to ${ap.ssid} (${ap.id}); external connectivity is SIMULATED-ONLINE`
+		`[WIFI] Interface bound to ${ap.ssid} (${ap.id}); external connectivity ONLINE`
 	);
 
 	return `[WIFI] Interface bound to ${ap.ssid} (${ap.id}).
-[NET] External connectivity: ${OK("SIMULATED-ONLINE")}.
+[NET] External connectivity: ${OK("ONLINE")}.
 Use 'netcheck' to verify status.`;
 }
 
@@ -137,14 +137,14 @@ export function netCheck(): string {
 	if (!connectedApId || !hasExternalConnectivity) {
 		return `[NETCHECK] net-module: ${OK("ONLINE")}
 [NETCHECK] Wi-Fi binding: NONE
-[RESULT] No route to external network in simulation.`;
+[RESULT] No route to external network.`;
 	}
 
 	const ap = wifiAps.find((a) => a.id === connectedApId);
 	const name = ap ? ap.ssid : connectedApId;
 	return `[NETCHECK] net-module: ${OK("ONLINE")}
 [NETCHECK] Wi-Fi binding: ${name}
-[RESULT] External connectivity: ${OK("SIMULATED-ONLINE")}.`;
+[RESULT] External connectivity: ${OK("ONLINE")}.`;
 }
 
 export function ping(targetRaw: string | undefined): string {
@@ -155,7 +155,7 @@ export function ping(targetRaw: string | undefined): string {
 
 	if (target === "core" || target === "sim://core") {
 		return `[PING] PING core (sim://core) 64 bytes from core: icmp_seq=0 time=0.042ms
-${OK("[OK]")} Core services reachable inside simulation.`;
+${OK("[OK]")} Core services reachable.`;
 	}
 
 	if (target === "net") {
@@ -170,10 +170,10 @@ ${OK("[OK]")} net-module responding on loopback route.`;
 	if (target === "external") {
 		if (!isModuleOnline("net-module") || !hasExternalConnectivity) {
 			return `[PING] PING external
-[ERROR] No simulated external route. Ensure 'net-module' is online and Wi-Fi is connected.`;
+[ERROR] No external route. Ensure 'net-module' is online and Wi-Fi is connected.`;
 		}
 		return `[PING] PING external 64 bytes from external: icmp_seq=0 time=12.345ms
-${OK("[OK]")} Simulated external host reachable via current Wi-Fi binding.`;
+${OK("[OK]")} External host reachable via current Wi-Fi binding.`;
 	}
 
 	return `[PING] Unknown target '${target}'.

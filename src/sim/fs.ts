@@ -16,22 +16,20 @@ let initializationFailed = false; // Track if initialization failed permanently
 
 // Default filesystem structure
 const DEFAULT_FS_STRUCTURE = {
-	"/README": `HackFrameOS Safe-Mode Simulator
+	"/README": `HackFrameOS Safe-Mode Environment
 
 SYSTEM STATUS: DEGRADED
 Last known good state: 2024-01-15 03:42:18 UTC
 Recovery protocol: ACTIVE
 
 This environment is a degraded OS image running in SAFE MODE.
-Nothing here touches your real filesystem or network interfaces.
 Use the terminal to explore, restore subsystems, and inspect logs.
 
 WARNING: System integrity compromised. Operator intervention required.
-All network activity is simulated and remains sandboxed.
 `,
 	"/boot/trace.log":
 		"Boot trace captured from degraded HackFrameOS image.\nRefer to /var/log/boot.log for full kernel stream.\nMultiple boot fragments detected with incomplete traces.\n",
-	"/etc/hackframe.conf": `# HackFrameOS configuration (simulated)
+	"/etc/hackframe.conf": `# HackFrameOS configuration
 image.state=DEGRADED
 safe_mode=true
 allowed_modules=auth-module,net-module,entropy-core,locale-config,time-sync,package-core,core-utils,gfx-module
@@ -44,10 +42,9 @@ build.date=2024-01-15
 		"Boot log stream is mirrored from the BIOS boot sequence.\nUse the BootScreen view to replay the cinematic log.\nMultiple warnings detected during initialization.\n",
 	"/var/log/hackframe.log": `[LOG] HackFrameOS safe-mode terminal initialized
 [LOG] Use 'mission' to view rehabilitation objectives
-[LOG] Network activity is simulated and remains sandboxed
 [LOG] System recovery in progress...
 `,
-	"/var/log/net.log": `[NET] Network log initialized (simulated only)
+	"/var/log/net.log": `[NET] Network log initialized
 [NET] Wireless interface: wlan0 (offline)
 `,
 	"/etc/motd": `HackFrameOS v0.1.3-alpha (build 2024.01.15)
@@ -304,7 +301,7 @@ function getFS(): any | null {
 }
 
 export function fsHelp(): string {
-	return `[FS] Simulated filesystem tools
+	return `[FS] Filesystem tools
 	fs ls [path]      List directory entries (default: /)
 	fs cat [path]     Show contents of a file
 Example paths:
@@ -312,7 +309,7 @@ Example paths:
 	/etc/hackframe.conf
 	/var/log/hackframe.log
 	/var/log/net.log
-Note: Filesystem is persisted to IndexedDB and survives page reloads.`;
+Note: Filesystem is persisted and survives page reloads.`;
 }
 
 /**

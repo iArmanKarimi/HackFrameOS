@@ -372,7 +372,7 @@ Use 'load ${dependency}' first, then retry loading ${id}.`;
 		moduleStates[id] = "OK";
 		appendLog(
 			"/var/log/hackframe.log",
-			`[OK] gfx-module online, framebuffer bound (simulation only)`
+			`[OK] gfx-module online, framebuffer bound`
 		);
 		return `[LOAD] gfx-module initializing...
 ${OK("[OK]")} Subsystem /core/gfx ready.`;
@@ -384,7 +384,7 @@ ${OK("[OK]")} Subsystem /core/gfx ready.`;
 		// MODULE_OUTPUTS already has OK() applied, so return as-is
 		appendLog(
 			"/var/log/hackframe.log",
-			`[OK] ${id} loaded into safe-mode kernel (simulation only)`
+			`[OK] ${id} loaded into safe-mode kernel`
 		);
 		return MODULE_OUTPUTS[id];
 	}
@@ -392,7 +392,7 @@ ${OK("[OK]")} Subsystem /core/gfx ready.`;
 	moduleStates[id] = "OK";
 	appendLog(
 		"/var/log/hackframe.log",
-		`[OK] ${id} initialized (generic module, simulation only)`
+		`[OK] ${id} initialized (generic module)`
 	);
 	return `${OK("[OK]")} ${id} initialized`;
 }
