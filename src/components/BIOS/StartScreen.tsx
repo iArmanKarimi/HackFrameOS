@@ -53,7 +53,6 @@ export const StartScreen: React.FC<{
 	const preBootRef = useRef<HTMLDivElement>(null);
 	const prevCanBootNormal = useRef(canBootNormal);
 	const [preBootUnlocked, setPreBootUnlocked] = useState(false);
-	const [isUnlocking, setIsUnlocking] = useState(false);
 	const [selectedIndex, setSelectedIndex] = useState(() =>
 		canBootNormal ? 0 : 1
 	);
@@ -62,20 +61,19 @@ export const StartScreen: React.FC<{
 	const [promptVisible, setPromptVisible] = useState(true);
 
 	const handlePreBootUnlock = useCallback(async () => {
-		if (isUnlocking || preBootUnlocked) {
+		if (preBootUnlocked) {
 			return;
 		}
 
-		setIsUnlocking(true);
+		setPreBootUnlocked(true);
+		// Try to request fullscreen, but don't block on it
 		try {
 			await requestFullscreen(preBootRef.current ?? undefined);
-			setPreBootUnlocked(true);
 		} catch (error) {
 			console.warn("Fullscreen request failed before GRUB:", error);
-		} finally {
-			setIsUnlocking(false);
+			// Continue even if fullscreen is not supported
 		}
-	}, [isUnlocking, preBootUnlocked]);
+	}, [preBootUnlocked]);
 
 	const handleSelection = useCallback(
 		async (value: MenuItemValue) => {
@@ -307,7 +305,7 @@ export const StartScreen: React.FC<{
 							letterSpacing: "0.3em",
 						}}
 					>
-						{isUnlocking ? "REQUESTING..." : "PRESS ENTER"}
+						PRESS ENTER
 					</div>
 				</div>
 			) : (
