@@ -4,8 +4,9 @@ import { BootScreen } from "./components/BIOS/BootScreen";
 import { StartScreen } from "./components/BIOS/StartScreen";
 import DesktopShell from "./ui/DesktopShell";
 import { initFilesystem } from "./sim/fs";
+import MemtestScreen from "./components/BIOS/MemtestScreen";
 
-type AppPhase = "start" | "boot" | "safemode" | "desktop";
+type AppPhase = "start" | "boot" | "safemode" | "desktop" | "memtest";
 type BootTarget = "normal" | "safemode" | "memtest" | "restart";
 const SAFE_MODE_FLAG = "hf:safeModeComplete";
 
@@ -36,7 +37,7 @@ const App: React.FC = () => {
 			}
 
 			if (target === "memtest") {
-				console.info("Memory Tester is not yet implemented.");
+				setPhase("memtest");
 				return;
 			}
 
@@ -80,6 +81,10 @@ const App: React.FC = () => {
 
 	if (phase === "boot") {
 		return <BootScreen onComplete={handleBootComplete} />;
+	}
+
+	if (phase === "memtest") {
+		return <MemtestScreen onExit={() => setPhase("start")} />;
 	}
 
 	if (phase === "safemode") {
