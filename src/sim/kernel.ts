@@ -396,4 +396,18 @@ export function getBootFragments(): ReadonlyArray<BootFragment> {
 	return bootFragments;
 }
 
+/**
+ * Get the number of loaded modules (for visual feedback)
+ */
+export function getLoadedModuleCount(): number {
+	return Object.values(moduleStates).filter(state => state === "OK").length;
+}
+
+/**
+ * Get the number of resolved fragments (for visual feedback)
+ */
+export function getResolvedFragmentCount(): number {
+	return bootFragments.filter(f => f.status === "RESOLVED").length;
+}
+
 

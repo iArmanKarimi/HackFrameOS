@@ -9,6 +9,7 @@ import {
 	AVAILABLE_COMMANDS,
 	AVAILABLE_MODULES,
 } from "./SafeModeCore";
+import { getLoadedModuleCount, getResolvedFragmentCount } from "../../sim/kernel";
 
 // TTY-authentic ANSI color mapping: only green (32) and white (default)
 // Classic Linux TTY terminals are monochrome - white text with green for success
@@ -153,6 +154,10 @@ const SafeModeTerminal: React.FC<{
 	const [commandHistory, setCommandHistory] = useState<string[]>([]);
 	// Current position in command history when navigating with arrow keys
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
+	
+	// Track progress for visual feedback
+	const [loadedModules, setLoadedModules] = useState(0);
+	const [resolvedFragments, setResolvedFragments] = useState(0);
 
 	// Ref for the scrollable container
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -166,6 +171,12 @@ const SafeModeTerminal: React.FC<{
 		if (containerRef.current) {
 			containerRef.current.scrollTop = containerRef.current.scrollHeight;
 		}
+	}, [history]);
+
+	// Update visual feedback when commands are executed
+	useEffect(() => {
+		setLoadedModules(getLoadedModuleCount());
+		setResolvedFragments(getResolvedFragmentCount());
 	}, [history]);
 
 	// Keep input focused at all times
@@ -401,11 +412,18 @@ const SafeModeTerminal: React.FC<{
 			>
 				<span
 					style={{
-						color: "#ffffff",
+						// Visual feedback: prompt color changes based on progress
+						// Start red (degraded), transition to yellow, then green as system recovers
+						color: loadedModules >= 6 && resolvedFragments >= 5
+							? "#00ff00" // Green: system mostly recovered
+							: loadedModules >= 3 || resolvedFragments >= 3
+							? "#ffff00" // Yellow: making progress
+							: "#ff4444", // Red: degraded state
 						fontFamily: "VT323, monospace",
 						fontSize: "16px",
 						whiteSpace: "nowrap",
 						flexShrink: 0,
+						transition: "color 0.3s ease",
 					}}
 				>
 					safemode@root:~${" "}
