@@ -1,3 +1,8 @@
+/**
+ * Boot Log - Organized into readable segments with natural pauses
+ * Empty lines create timing breaks for better reading flow
+ */
+
 export const BOOT_LOG = `
 [    0.000000] HackFrameOS v0.1.3-alpha booting...
 [    0.000003] [WARN] System image DEGRADED - Safe Mode active
@@ -10,6 +15,7 @@ export const BOOT_LOG = `
 [    0.000030] Internal bus online
 [    0.000034] Device map registered
 [    0.000038] [WARN] Device 0x03: timeout on init
+ 
 [    0.000042] Mounting root filesystem...
 [    0.000047] Filesystem type: ext4 (corrupted)
 [    0.000052] Disk check complete
@@ -64,6 +70,7 @@ export const BOOT_LOG = `
 [    0.000260] [WARN] Entropy pool depleted
 [    0.000265] [WARN] Random number generator: weak
 [    0.000270] Subsystem sync: 100%
+ 
 [    0.000275] Initializing shell environment...
 [    0.000280] Shell profile loaded
 [    0.000285] Environment variables registered
@@ -78,6 +85,7 @@ export const BOOT_LOG = `
 [    0.000330] Renderer: text-only
 [    0.000335] Renderer status: OK
 [    0.000340] Graphics subsystem: unavailable
+ 
 [    0.000345] Initializing user space...
 [    0.000350] User ID: root
 [    0.000355] Home directory mounted
@@ -129,13 +137,13 @@ export const BOOT_LOG = `
 [    0.000575] Block 0x0000BD: OK
 [    0.000580] Block 0x0000BE: OK
 [    0.000585] Block 0x0000BF: OK
- 
 [    0.000590] System integrity check...
 [    0.000595] [WARN] Multiple subsystems require rehabilitation
 [    0.000600] [WARN] Network connectivity: offline
 [    0.000605] [WARN] Authentication services: unavailable
 [    0.000610] [WARN] Graphics module: not loaded
+		
 [    0.000615] Finalizing boot environment...
 [    0.000620] Boot sequence complete
 [    0.000625] [INFO] Entering Safe Mode terminal
-`;
+` as const;
