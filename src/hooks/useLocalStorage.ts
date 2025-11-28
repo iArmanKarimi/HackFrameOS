@@ -61,6 +61,9 @@ export function useLocalStorageFlag(
 		}
 		try {
 			const item = window.localStorage.getItem(key);
+			if (item === null) {
+				return initialValue;
+			}
 			return item === "true";
 		} catch {
 			return initialValue;
