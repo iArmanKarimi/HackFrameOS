@@ -1,16 +1,20 @@
-// Scalable filesystem simulation for HackFrameOS using browserfs with IndexedDB persistence.
-// This replaces the simple in-memory implementation with a robust, persistent filesystem.
+/**
+ * Scalable filesystem simulation for HackFrameOS using browserfs with IndexedDB persistence.
+ * This replaces the simple in-memory implementation with a robust, persistent filesystem.
+ */
 
 import { format } from "date-fns";
 
-// BrowserFS will be loaded dynamically to handle ES module compatibility
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let BrowserFS: any = null;
-let browserFSLoadAttempted = false;
+import type {
+	AsyncFileSystem,
+	BrowserFSFileSystem,
+	BrowserFSModule,
+	FileSystemError,
+} from "../types";
 
-// Global filesystem instance - using any for now as browserfs types are complex
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let fsInstance: any = null;
+let BrowserFS: BrowserFSModule | null = null;
+let browserFSLoadAttempted = false;
+let fsInstance: BrowserFSFileSystem | null = null;
 let isInitialized = false;
 let initializationFailed = false; // Track if initialization failed permanently
 
@@ -64,19 +68,15 @@ async function loadBrowserFS(): Promise<void> {
 	browserFSLoadAttempted = true;
 
 	try {
-		// BrowserFS exports methods directly on the module
 		const browserFSModule = await import("browserfs");
 
-		// BrowserFS methods (configure, BFSRequire, etc.) are exported directly on the module
-		// Check if configure method exists
 		if (typeof browserFSModule.configure === "function") {
-			BrowserFS = browserFSModule;
+			BrowserFS = browserFSModule as BrowserFSModule;
 			console.log("BrowserFS loaded successfully");
 		} else {
-			// Try default export as fallback
-			BrowserFS = browserFSModule.default || browserFSModule;
-
-			if (BrowserFS && typeof BrowserFS.configure === "function") {
+			const defaultExport = browserFSModule.default || browserFSModule;
+			if (defaultExport && typeof defaultExport.configure === "function") {
+				BrowserFS = defaultExport as BrowserFSModule;
 				console.log("BrowserFS loaded successfully (via default export)");
 			} else {
 				console.warn("BrowserFS module loaded but configure method not found", {
@@ -170,13 +170,14 @@ export async function initFilesystem(): Promise<void> {
 /**
  * Create async wrapper for filesystem operations
  */
-function createAsyncWrapper(fs: any) {
+function createAsyncWrapper(fs: BrowserFSFileSystem): AsyncFileSystem {
 	return {
-		mkdir: (path: string, options?: any): Promise<void> => {
+		mkdir: (path: string, options?: { recursive?: boolean }): Promise<void> => {
 			return new Promise((resolve, reject) => {
-				fs.mkdir(path, options, (err: Error | null) => {
-					if (err && (err as any).code !== "EEXIST") {
-						reject(err);
+				fs.mkdir(path, options || {}, (err: Error | null) => {
+					const fsError = err as FileSystemError | null;
+					if (fsError && fsError.code !== "EEXIST") {
+						reject(fsError);
 					} else {
 						resolve();
 					}
@@ -262,7 +263,7 @@ async function initializeDefaultStructure(): Promise<void> {
 				await asyncFs.writeFile(path, content, "utf8");
 			}
 		} catch (err) {
-			const error = err as any;
+			const error = err as FileSystemError;
 			if (error.code !== "EEXIST" && error.code !== "ENOTSUP") {
 				console.warn(`Failed to initialize ${path}:`, err);
 			}
@@ -273,13 +274,11 @@ async function initializeDefaultStructure(): Promise<void> {
 /**
  * Ensure filesystem is initialized before use.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function ensureInitialized(): Promise<any> {
+async function ensureInitialized(): Promise<BrowserFSFileSystem | null> {
 	if (!isInitialized || !fsInstance) {
 		await initFilesystem();
 	}
 	if (!fsInstance) {
-		// Return null instead of throwing to allow graceful degradation
 		return null;
 	}
 	return fsInstance;
@@ -290,10 +289,8 @@ async function ensureInitialized(): Promise<any> {
  * Use ensureInitialized() for async initialization.
  * Returns null if filesystem is not available (graceful degradation).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getFS(): any | null {
+function getFS(): BrowserFSFileSystem | null {
 	if (!fsInstance) {
-		// Return null instead of throwing to allow graceful degradation
 		return null;
 	}
 	return fsInstance;

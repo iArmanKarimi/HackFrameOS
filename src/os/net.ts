@@ -1,8 +1,10 @@
-// Simulated networking and Wi‑Fi layer for HackFrameOS.
-// All behavior here is purely in-memory and has no real network effects.
+/**
+ * Simulated networking and Wi‑Fi layer for HackFrameOS.
+ * All behavior here is purely in-memory and has no real network effects.
+ */
 
-import { getModuleStates, type ModuleId } from "./kernel";
 import { appendLog } from "./fs";
+import { getModuleStates, type ModuleId } from "./kernel";
 
 // TTY-authentic formatting: only green for OK
 const OK = (text: string) => `\x1b[32m${text}\x1b[0m`; // Green for OK (authentic Linux TTY)
