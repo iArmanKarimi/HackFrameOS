@@ -1,6 +1,6 @@
 import ansiEscapes from "ansi-escapes";
 
-export { BOOT_LOG } from "../components/boot-log";
+export { BOOT_LOG } from "../components/boot/boot-log";
 
 // --- Constants & Boot banner ---
 const OS_VERSION = "HackFrameOS v0.1";

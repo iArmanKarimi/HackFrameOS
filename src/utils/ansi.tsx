@@ -38,10 +38,9 @@ function flushBuffer(
 ): void {
 	if (buffer) {
 		parts.push(
-			<span key={`text-${parts.length}`} style = {{ color: currentColor }
-}>
-	{ buffer }
-	< /span>
+			<span key={`text-${parts.length}`} style={{ color: currentColor }}>
+				{buffer}
+			</span>
 		);
 	}
 }
@@ -143,3 +142,4 @@ export function ansiToReact(text: string): React.ReactNode[] {
 export function hasAnsiCodes(text: string): boolean {
 	return text.includes("\x1b") || text.includes("\u001b");
 }
+

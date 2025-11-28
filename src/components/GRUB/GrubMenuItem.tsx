@@ -5,9 +5,9 @@
 
 import React from "react";
 
-import { FONT_STACKS } from "../styles/terminalStyles";
+import { FONT_STACKS } from "../../styles/terminalStyles";
 
-import type { MenuItem } from "../types";
+import type { MenuItem } from "../../types";
 
 interface GrubMenuItemProps {
 	item: MenuItem;

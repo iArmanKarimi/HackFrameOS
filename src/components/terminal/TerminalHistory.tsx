@@ -5,9 +5,9 @@
 
 import React from "react";
 
-import { ansiToReact, hasAnsiCodes } from "../utils/ansi";
+import { ansiToReact, hasAnsiCodes } from "../../utils/ansi";
 
-import { TERMINAL_STYLES } from "../styles/terminalStyles";
+import { TERMINAL_STYLES } from "../../styles/terminalStyles";
 
 interface TerminalHistoryProps {
 	history: string[];

@@ -5,8 +5,8 @@
 
 import React from "react";
 
-import { COLORS } from "../constants";
-import { FONT_STACKS } from "../styles/terminalStyles";
+import { COLORS } from "../../constants";
+import { FONT_STACKS } from "../../styles/terminalStyles";
 
 interface TerminalInputProps {
 	input: string;

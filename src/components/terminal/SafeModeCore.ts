@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 
-import { fsHelp, fsLs, fsCat } from "../os/fs";
+import { fsHelp, fsLs, fsCat } from "../../os/fs";
 import {
 	BOOT_BANNER,
 	COMMAND_NOT_FOUND,
@@ -19,7 +19,7 @@ import {
 	resolveFragment,
 	showMission,
 	showStatus,
-} from "../os/kernel";
+} from "../../os/kernel";
 import {
 	netCheck,
 	ping,
@@ -27,9 +27,9 @@ import {
 	wifiCrack,
 	wifiHelp,
 	wifiScan,
-} from "../os/net";
+} from "../../os/net";
 
-export { BOOT_LOG } from "./boot-log";
+export { BOOT_LOG } from "../boot/boot-log";
 
 // Available commands for autocomplete
 export const AVAILABLE_COMMANDS = [
@@ -239,9 +239,6 @@ export function runCommand(input: string): string {
 	try {
 		return handler(args);
 	} catch (error) {
-		return `[ERROR] Command execution failed: ${error instanceof Error ? error.message : String(error)
-			}`;
+		return `[ERROR] Command execution failed: ${error instanceof Error ? error.message : String(error)}`;
 	}
 }
-
-

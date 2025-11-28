@@ -5,7 +5,7 @@
 
 import React from "react";
 
-import type { LogEntry } from "../types";
+import type { LogEntry } from "../../types";
 
 interface MemtestLogViewerProps {
 	logs: LogEntry[];

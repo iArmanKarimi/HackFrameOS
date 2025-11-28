@@ -5,9 +5,9 @@ import { TerminalHistory } from "./TerminalHistory";
 import { TerminalInput } from "./TerminalInput";
 import { BOOT_BANNER } from "./SafeModeCore";
 
-import { useTerminalHistory } from "../hooks/useTerminalHistory";
+import { useTerminalHistory } from "../../hooks/useTerminalHistory";
 
-import type { SafeModeTerminalProps } from "../types";
+import type { SafeModeTerminalProps } from "../../types";
 
 const SafeModeTerminal: React.FC<SafeModeTerminalProps> = ({ onComplete }) => {
 	const {

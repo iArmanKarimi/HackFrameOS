@@ -4,7 +4,7 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { STYLE_COLORS } from "../styles/terminalStyles";
+import { STYLE_COLORS } from "../../styles/terminalStyles";
 
 interface ErrorBoundaryProps {
 	children: ReactNode;

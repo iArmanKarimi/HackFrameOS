@@ -5,7 +5,7 @@
 
 import React from "react";
 
-import { FONT_STACKS, STYLE_COLORS } from "../styles/terminalStyles";
+import { FONT_STACKS, STYLE_COLORS } from "../../styles/terminalStyles";
 
 const CONTAINER_STYLE: React.CSSProperties = {
 	width: "100%",
@@ -49,8 +49,7 @@ export const PreBootScreen: React.FC = () => {
 		<div style={CONTAINER_STYLE}>
 			<pre style={TITLE_STYLE}>HackFrame Firmware Interface</pre>
 			<div style={DESCRIPTION_STYLE}>
-				Initializing secure display pipeline. Press ENTER to start booting GNU
-				GRUB.
+				Initializing secure display pipeline. Press ENTER to start booting GNU GRUB.
 			</div>
 			<div style={BUTTON_STYLE}>PRESS ENTER</div>
 		</div>

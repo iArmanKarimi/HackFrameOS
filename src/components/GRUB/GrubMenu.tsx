@@ -7,7 +7,7 @@ import React from "react";
 
 import { GrubMenuItem } from "./GrubMenuItem";
 
-import type { MenuItem } from "../types";
+import type { MenuItem } from "../../types";
 
 interface GrubMenuProps {
 	items: MenuItem[];

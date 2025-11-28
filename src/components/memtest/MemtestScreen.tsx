@@ -3,11 +3,11 @@ import React, { useEffect, useState } from "react";
 import { MemtestLogViewer } from "./MemtestLogViewer";
 import { MemtestProgressBar } from "./MemtestProgressBar";
 
-import { useMemtestWorker } from "../hooks/useWorker";
+import { useMemtestWorker } from "../../hooks/useWorker";
 
-import { MEMTEST_SCREEN_STYLES } from "../styles/terminalStyles";
+import { MEMTEST_SCREEN_STYLES } from "../../styles/terminalStyles";
 
-import type { LogEntry, MemtestScreenProps } from "../types";
+import type { LogEntry, MemtestScreenProps } from "../../types";
 
 export const MemtestScreen: React.FC<MemtestScreenProps> = ({ onExit }) => {
 	const [progress, setProgress] = useState(0);

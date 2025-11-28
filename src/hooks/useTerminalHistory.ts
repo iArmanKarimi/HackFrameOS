@@ -5,11 +5,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ansiEscapes from "ansi-escapes";
 
-import { runCommand } from "../components/SafeModeCore";
+import { runCommand } from "../components/terminal/SafeModeCore";
 import {
 	AVAILABLE_COMMANDS,
 	AVAILABLE_MODULES,
-} from "../components/SafeModeCore";
+} from "../components/terminal/SafeModeCore";
 
 import { getLoadedModuleCount, getResolvedFragmentCount } from "../os/kernel";
 

@@ -5,7 +5,7 @@
 
 import React from "react";
 
-import { TERMINAL_STYLES } from "../styles/terminalStyles";
+import { TERMINAL_STYLES } from "../../styles/terminalStyles";
 
 interface TerminalContainerProps {
 	children: React.ReactNode;

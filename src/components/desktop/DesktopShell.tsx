@@ -1,6 +1,6 @@
 import React from "react";
 
-import { DESKTOP_SHELL_STYLES } from "../styles/terminalStyles";
+import { DESKTOP_SHELL_STYLES } from "../../styles/terminalStyles";
 
 /**
  * DesktopShell Component
@@ -31,12 +31,11 @@ const DesktopShell: React.FC = () => {
 				>
 					<h3 style={{ margin: 0, marginBottom: "0.5rem" }}>System Status</h3>
 					<p style={{ margin: 0, opacity: 0.8 }}>
-						Module status, network connectivity, and system logs will appear
-						here.
+						Module status, network connectivity, and system logs will appear here.
 					</p>
 					<p style={{ margin: "0.5rem 0 0 0", opacity: 0.6, fontSize: "14px" }}>
-						Status: All systems operational | Network: Connected | Boot
-						fragments: Resolved
+						Status: All systems operational | Network: Connected | Boot fragments:
+						Resolved
 					</p>
 				</div>
 

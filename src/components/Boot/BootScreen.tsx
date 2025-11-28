@@ -1,13 +1,13 @@
 import React, { useMemo } from "react";
 
 import { BootLogLine } from "./BootLogLine";
-import { BOOT_LOG } from "./SafeModeCore";
+import { BOOT_LOG } from "./boot-log";
 
-import { useBootSequence } from "../hooks/useBootSequence";
+import { useBootSequence } from "../../hooks/useBootSequence";
 
-import { BOOT_SCREEN_STYLES } from "../styles/terminalStyles";
+import { BOOT_SCREEN_STYLES } from "../../styles/terminalStyles";
 
-import type { BootScreenProps } from "../types";
+import type { BootScreenProps } from "../../types";
 
 /**
  * BootScreen Component

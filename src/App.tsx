@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 
 import { initFilesystem } from "./os/fs";
 
-import { BootScreen } from "./components/BootScreen";
-import DesktopShell from "./components/DesktopShell";
-import { GrubScreen } from "./components/GrubScreen";
-import MemtestScreen from "./components/MemtestScreen";
-import SafeModeTerminal from "./components/SafeModeTerminal";
+import { BootScreen } from "./components/boot/BootScreen";
+import DesktopShell from "./components/desktop/DesktopShell";
+import { GrubScreen } from "./components/grub/GrubScreen";
+import MemtestScreen from "./components/memtest/MemtestScreen";
+import SafeModeTerminal from "./components/terminal/SafeModeTerminal";
 
 import { useLocalStorageFlag } from "./hooks/useLocalStorage";
 

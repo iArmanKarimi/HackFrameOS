@@ -5,8 +5,8 @@
 
 import React from "react";
 
-import { GRUB_CONFIG } from "../constants";
-import { FONT_STACKS } from "../styles/terminalStyles";
+import { GRUB_CONFIG } from "../../constants";
+import { FONT_STACKS } from "../../styles/terminalStyles";
 
 interface GrubProgressBarProps {
 	countdown: number;

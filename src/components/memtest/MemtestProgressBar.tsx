@@ -56,8 +56,7 @@ export const MemtestProgressBar: React.FC<MemtestProgressBarProps> = ({
 				<div style={{ ...PROGRESS_BAR_FILL_STYLE, width: `${progress}%` }} />
 			</div>
 			<div style={PROGRESS_TEXT_STYLE}>
-				{progress}% complete • system will reboot automatically when testing
-				finishes.
+				{progress}% complete • system will reboot automatically when testing finishes.
 			</div>
 		</div>
 	);
