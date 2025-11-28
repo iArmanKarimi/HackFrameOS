@@ -57,25 +57,36 @@ body {
 	background: transparent !important;
 }
 
-/* Terminal-style scrollbar for SafeMode (if needed in the future) */
+/* Terminal-style scrollbar for SafeMode (can override global hiding) */
 .safemode-scrollbar {
-	scrollbar-width: thin;
-	scrollbar-color: #333333 #0d0d0d;
+	-ms-overflow-style: auto !important;
+	/* IE and Edge - override global rule */
+	scrollbar-width: thin !important;
+	/* Firefox - override global rule */
+	scrollbar-color: #333333 #0d0d0d !important;
 }
 
 .safemode-scrollbar::-webkit-scrollbar {
-	width: 8px;
+	display: block !important;
+	/* Override global hiding */
+	width: 8px !important;
+	height: 8px !important;
+	background: transparent !important;
 }
 
 .safemode-scrollbar::-webkit-scrollbar-track {
-	background: #0d0d0d;
+	display: block !important;
+	/* Override global hiding */
+	background: #0d0d0d !important;
 }
 
 .safemode-scrollbar::-webkit-scrollbar-thumb {
-	background: #333333;
-	border-radius: 4px;
+	display: block !important;
+	/* Override global hiding */
+	background: #333333 !important;
+	border-radius: 4px !important;
 }
 
 .safemode-scrollbar::-webkit-scrollbar-thumb:hover {
-	background: #444444;
+	background: #444444 !important;
 }
