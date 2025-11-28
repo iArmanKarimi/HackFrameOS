@@ -49,6 +49,14 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 	const prevCanBootNormal = useRef(canBootNormal);
 	const isBootingRef = useRef(false);
 	const [preBootUnlocked, setPreBootUnlocked] = useState(false);
+
+	// Reset booting flag on component mount (always reset to false when component is created)
+	useEffect(() => {
+		console.log(
+			"[GrubScreen] Component mounted, resetting isBootingRef to false"
+		);
+		isBootingRef.current = false;
+	}, []); // Empty deps = run only on mount
 	const [selectedIndex, setSelectedIndex] = useState(() => {
 		const initial = canBootNormal ? 0 : 1;
 		console.debug(
@@ -98,39 +106,64 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 
 	const handleSelection = useCallback(
 		async (value: MenuItemValue) => {
+			console.log(
+				"[GrubScreen] handleSelection called, value:",
+				value,
+				"isBootingRef.current:",
+				isBootingRef.current
+			);
 			if (isBootingRef.current) {
-				console.debug(
+				console.warn(
 					"[GrubScreen] Boot already in progress, ignoring selection"
 				);
 				return;
 			}
-			console.debug("[GrubScreen] Boot selection:", value);
+			console.log("[GrubScreen] Setting isBootingRef.current = true");
 			isBootingRef.current = true;
 
+			// Request fullscreen with timeout - don't block boot if it fails or hangs
+			const fullscreenPromise = requestFullscreen().catch(error => {
+				console.warn("[GrubScreen] Fullscreen request failed:", error);
+				return null; // Continue even if fullscreen fails
+			});
+
+			// Add timeout to prevent hanging
+			const fullscreenTimeout = new Promise(resolve => {
+				setTimeout(() => {
+					console.warn(
+						"[GrubScreen] Fullscreen request timed out, proceeding anyway"
+					);
+					resolve(null);
+				}, 1000); // 1 second timeout
+			});
+
 			try {
-				// Request fullscreen first
-				await requestFullscreen();
-				console.debug(
-					"[GrubScreen] Fullscreen entered, booting in",
+				console.log("[GrubScreen] Requesting fullscreen...");
+				await Promise.race([fullscreenPromise, fullscreenTimeout]);
+				console.log(
+					"[GrubScreen] Fullscreen handled, booting in",
 					GRUB_CONFIG.FULLSCREEN_DELAY_MS,
 					"ms"
 				);
-				setTimeout(() => {
-					onSelectBoot(value);
-					// Reset booting flag after a delay in case user comes back
-					setTimeout(() => {
-						isBootingRef.current = false;
-					}, 2000);
-				}, GRUB_CONFIG.FULLSCREEN_DELAY_MS);
 			} catch (error) {
-				console.error("[GrubScreen] Failed to enter fullscreen:", error);
-				// Still proceed even if fullscreen fails
+				console.error(
+					"[GrubScreen] Unexpected error during fullscreen:",
+					error
+				);
+			}
+
+			// Proceed with boot regardless of fullscreen result
+			setTimeout(() => {
+				console.log("[GrubScreen] Calling onSelectBoot with:", value);
 				onSelectBoot(value);
 				// Reset booting flag after a delay in case user comes back
 				setTimeout(() => {
+					console.log(
+						"[GrubScreen] Resetting isBootingRef.current = false (after onSelectBoot)"
+					);
 					isBootingRef.current = false;
 				}, 2000);
-			}
+			}, GRUB_CONFIG.FULLSCREEN_DELAY_MS);
 		},
 		[onSelectBoot]
 	);
@@ -165,6 +198,16 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 			prevCanBootNormal.current = canBootNormal;
 		}
 	}, [canBootNormal]);
+
+	// Reset booting flag when GRUB menu is unlocked (in case user returns from another screen)
+	useEffect(() => {
+		if (preBootUnlocked) {
+			console.log(
+				"[GrubScreen] GRUB menu unlocked, resetting isBootingRef to false"
+			);
+			isBootingRef.current = false;
+		}
+	}, [preBootUnlocked]);
 
 	// Focus container for keyboard events and ensure it stays focused
 	useEffect(() => {
@@ -233,10 +276,6 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 				);
 				return;
 			}
-			if (isBootingRef.current) {
-				console.debug("[GrubScreen] Key pressed but boot in progress:", e.key);
-				return;
-			}
 
 			const currentIndex = selectedIndexRef.current;
 			console.debug(
@@ -249,6 +288,7 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 			if (e.key === "ArrowUp") {
 				e.preventDefault();
 				e.stopPropagation();
+				// Allow arrow keys even when booting is in progress
 				// Calculate new index
 				let newIndex =
 					currentIndex === 0 ? MENU_ITEMS.length - 1 : currentIndex - 1;
@@ -275,6 +315,7 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 			if (e.key === "ArrowDown") {
 				e.preventDefault();
 				e.stopPropagation();
+				// Allow arrow keys even when booting is in progress
 				// Calculate new index
 				let newIndex =
 					currentIndex === MENU_ITEMS.length - 1 ? 0 : currentIndex + 1;
@@ -297,61 +338,105 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 			}
 
 			if (e.key === "Enter" || e.key === "Return") {
+				console.log(
+					"[GrubScreen] Enter key detected in handleKeyDown, isBootingRef.current:",
+					isBootingRef.current,
+					"preBootUnlocked:",
+					preBootUnlocked
+				);
+				// Block Enter key when boot is already in progress
+				if (isBootingRef.current) {
+					console.warn(
+						"[GrubScreen] Enter pressed but boot in progress (isBootingRef.current = true), ignoring. This should not happen if component was properly reset."
+					);
+					return;
+				}
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
 				const item = MENU_ITEMS[currentIndex];
+				console.log(
+					"[GrubScreen] Selected item:",
+					item,
+					"currentIndex:",
+					currentIndex
+				);
 				// Only "normal" boot can be disabled; all other items (safemode, memtest, restart) are always enabled
 				const isDisabled = item.value === "normal" && !canBootNormal;
-				console.debug(
+				console.log(
 					"[GrubScreen] Enter pressed, item:",
 					item.value,
 					"disabled:",
 					isDisabled,
 					"selectedIndex:",
-					currentIndex
+					currentIndex,
+					"canBootNormal:",
+					canBootNormal
 				);
 				if (isDisabled) {
 					console.warn("[GrubScreen] Selection disabled, ignoring");
 					return;
 				}
 				// Memtest, safemode, and restart are always selectable
+				console.log("[GrubScreen] Calling handleSelection with:", item.value);
 				handleSelection(item.value);
 			}
 		},
 		[preBootUnlocked, canBootNormal, handleSelection]
 	);
 
-	const handleContainerKeyDown = useCallback(
-		(e: React.KeyboardEvent<HTMLDivElement>) => {
-			handleKeyDown(e);
-		},
-		[handleKeyDown]
-	);
+	// Handle keyboard events at document level when GRUB menu is unlocked
+	// Since GRUB only handles one instance of key presses, document-level is sufficient
+	useEffect(() => {
+		console.debug(
+			"[GrubScreen] Setting up document listener, preBootUnlocked:",
+			preBootUnlocked
+		);
+		if (!preBootUnlocked) {
+			console.debug(
+				"[GrubScreen] preBootUnlocked is false, not setting up listener"
+			);
+			return;
+		}
 
-	// Removed document-level keydown listener to avoid duplicate handling
+		const handleDocumentKeyDown = (e: KeyboardEvent) => {
+			console.log("[GrubScreen] Document keydown:", e.key, "target:", e.target);
+			// Only handle navigation and Enter keys
+			if (
+				e.key === "ArrowUp" ||
+				e.key === "ArrowDown" ||
+				e.key === "Enter" ||
+				e.key === "Return"
+			) {
+				console.log("[GrubScreen] Document handler processing key:", e.key);
+				// Prevent default and stop propagation for all handled keys
+				e.preventDefault();
+				e.stopPropagation();
+				if (e.key === "Enter" || e.key === "Return") {
+					e.stopImmediatePropagation();
+				}
+				handleKeyDown(e);
+			}
+		};
+
+		// Use capture phase to catch events early before other handlers
+		console.debug("[GrubScreen] Adding document keydown listener");
+		document.addEventListener("keydown", handleDocumentKeyDown, true);
+		return () => {
+			console.debug("[GrubScreen] Removing document keydown listener");
+			document.removeEventListener("keydown", handleDocumentKeyDown, true);
+		};
+	}, [preBootUnlocked, handleKeyDown]);
 
 	return (
 		<div
 			ref={preBootUnlocked ? containerRef : preBootRef}
 			tabIndex={0}
-			onKeyDown={handleContainerKeyDown}
 			onFocus={e => {
 				console.debug("[GrubScreen] Container received focus");
 			}}
 			onBlur={e => {
 				console.debug("[GrubScreen] Container lost focus");
-				// Re-focus if we lose focus while unlocked
-				if (preBootUnlocked && containerRef.current) {
-					setTimeout(() => {
-						if (
-							containerRef.current &&
-							document.activeElement !== containerRef.current
-						) {
-							containerRef.current.focus();
-						}
-					}, 0);
-				}
 			}}
 			style={GRUB_SCREEN_STYLES.CONTAINER}
 		>

@@ -105,8 +105,9 @@ export function useMemtestWorker({
 	onComplete,
 	onError,
 }: UseMemtestWorkerOptions): UseMemtestWorkerReturn {
+	// Use Vite's ?worker syntax to properly load the worker module
 	const workerUrl = new URL(
-		"../../workers/memtestWorker.ts",
+		"../../workers/memtestWorker.ts?worker",
 		import.meta.url
 	);
 
