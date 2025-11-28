@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 
 import { initFilesystem } from "./os/fs";
 
-import { BootScreen } from "./components/boot/BootScreen";
+import { BootScreen } from "./components/Boot/BootScreen";
 import DesktopShell from "./components/desktop/DesktopShell";
-import { GrubScreen } from "./components/grub/GrubScreen";
+import { GrubScreen } from "./components/GRUB/GrubScreen";
 import MemtestScreen from "./components/memtest/MemtestScreen";
 import SafeModeTerminal from "./components/terminal/SafeModeTerminal";
 

@@ -29,7 +29,7 @@ import {
 	wifiScan,
 } from "../../os/net";
 
-export { BOOT_LOG } from "../boot/boot-log";
+export { BOOT_LOG } from "../Boot/boot-log";
 
 // Available commands for autocomplete
 export const AVAILABLE_COMMANDS = [
