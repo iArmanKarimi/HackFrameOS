@@ -65,7 +65,15 @@ export function useTerminalHistory({
 	// Auto-scroll to bottom when history updates
 	useEffect(() => {
 		if (containerRef.current) {
-			containerRef.current.scrollTop = containerRef.current.scrollHeight;
+			// Use requestAnimationFrame to ensure DOM has updated
+			requestAnimationFrame(() => {
+				if (containerRef.current) {
+					containerRef.current.scrollTo({
+						top: containerRef.current.scrollHeight,
+						behavior: 'auto',
+					});
+				}
+			});
 		}
 	}, [history]);
 
@@ -195,9 +203,8 @@ export function useTerminalHistory({
 			try {
 				output = runCommand(trimmedInput);
 			} catch (error) {
-				output = `[ERROR] Command execution failed: ${
-					error instanceof Error ? error.message : String(error)
-				}`;
+				output = `[ERROR] Command execution failed: ${error instanceof Error ? error.message : String(error)
+					}`;
 			}
 
 			if (output === ansiEscapes.clearScreen) {

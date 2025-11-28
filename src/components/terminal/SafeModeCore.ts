@@ -5,7 +5,6 @@
 
 import { z } from "zod";
 
-import { fsHelp, fsLs, fsCat } from "../../os/fs";
 import {
 	BOOT_BANNER,
 	COMMAND_NOT_FOUND,
@@ -20,14 +19,6 @@ import {
 	showMission,
 	showStatus,
 } from "../../os/kernel";
-import {
-	netCheck,
-	ping,
-	wifiConnect,
-	wifiCrack,
-	wifiHelp,
-	wifiScan,
-} from "../../os/net";
 
 export { BOOT_LOG } from "../Boot/boot-log";
 
@@ -41,10 +32,6 @@ export const AVAILABLE_COMMANDS = [
 	"hint",
 	"startx",
 	"clear",
-	"wifi",
-	"ping",
-	"netcheck",
-	"fs",
 ] as const;
 
 // Available modules for autocomplete
@@ -153,53 +140,6 @@ Use 'mission' to check progress.`;
 }
 
 /**
- * Handle wifi command with subcommands (scan, crack, connect)
- * @param args - Command arguments (subcommand and optional AP ID)
- * @returns WiFi operation result message
- */
-function handleWifi(args: string[]): string {
-	if (args.length === 0) {
-		return wifiHelp();
-	}
-	const subcommand = args[0];
-	if (subcommand === "scan") {
-		return wifiScan();
-	}
-	if (subcommand === "crack") {
-		if (args.length < 2) {
-			return wifiHelp();
-		}
-		return wifiCrack(args[1]);
-	}
-	if (subcommand === "connect") {
-		if (args.length < 2) {
-			return wifiHelp();
-		}
-		return wifiConnect(args[1]);
-	}
-	return wifiHelp();
-}
-
-/**
- * Handle filesystem command with subcommands (ls, cat)
- * @param args - Command arguments (subcommand and optional path)
- * @returns Filesystem operation result message
- */
-function handleFs(args: string[]): string {
-	if (args.length === 0) {
-		return fsHelp();
-	}
-	const subcommand = args[0];
-	if (subcommand === "ls") {
-		return fsLs(args[1]);
-	}
-	if (subcommand === "cat") {
-		return fsCat(args[1]);
-	}
-	return fsHelp();
-}
-
-/**
  * Command map for routing commands to handlers
  */
 const COMMAND_HANDLERS: Record<string, CommandHandler> = {
@@ -211,10 +151,6 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
 	load: handleLoad,
 	fragment: handleFragment,
 	startx: () => handleStartx(),
-	ping: (args: string[]) => ping(args[0]),
-	netcheck: () => netCheck(),
-	wifi: handleWifi,
-	fs: handleFs,
 };
 
 /**

@@ -2,7 +2,7 @@
  * Custom hook for managing Web Workers with type safety
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
 	WorkerLogPayload,
@@ -11,7 +11,7 @@ import type {
 } from "../types";
 
 interface UseWorkerOptions {
-	workerUrl: URL;
+	workerUrl: URL | string;
 	onMessage?: (message: WorkerMessage) => void;
 	onError?: (error: ErrorEvent) => void;
 }
@@ -32,38 +32,60 @@ export function useWorker({
 	onError,
 }: UseWorkerOptions): UseWorkerReturn {
 	const workerRef = useRef<Worker | null>(null);
+	const onMessageRef = useRef(onMessage);
+	const onErrorRef = useRef(onError);
 	const [isReady, setIsReady] = useState(false);
 
+	// Keep refs up to date without causing worker restarts
 	useEffect(() => {
-		const worker = new Worker(workerUrl, { type: "module" });
-		workerRef.current = worker;
+		onMessageRef.current = onMessage;
+		onErrorRef.current = onError;
+	}, [onMessage, onError]);
 
-		worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-			if (onMessage) {
-				onMessage(event.data);
-			}
-		};
+	useEffect(() => {
+		let worker: Worker;
+		try {
+			// Convert URL to string if needed
+			const urlString = workerUrl instanceof URL ? workerUrl.href : workerUrl;
+			console.log("Creating worker with URL:", urlString);
+			worker = new Worker(urlString, { type: "module" });
+			workerRef.current = worker;
+			console.log("Worker created successfully");
 
-		worker.onerror = (error: ErrorEvent) => {
-			if (onError) {
-				onError(error);
-			} else {
+			worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+				console.log("Worker message received:", event.data);
+				if (onMessageRef.current) {
+					onMessageRef.current(event.data);
+				}
+			};
+
+			worker.onerror = (error: ErrorEvent) => {
 				console.error("Worker error:", error);
+				if (onErrorRef.current) {
+					onErrorRef.current(error);
+				}
+			};
+
+			worker.onmessageerror = (error: MessageEvent) => {
+				console.error("Worker message error:", error);
+			};
+
+			setIsReady(true);
+		} catch (error) {
+			console.error("Failed to create worker:", error);
+			if (onErrorRef.current) {
+				onErrorRef.current(error as ErrorEvent);
 			}
-		};
-
-		worker.onmessageerror = (error: MessageEvent) => {
-			console.error("Worker message error:", error);
-		};
-
-		setIsReady(true);
+		}
 
 		return () => {
-			worker.terminate();
-			workerRef.current = null;
-			setIsReady(false);
+			if (workerRef.current) {
+				workerRef.current.terminate();
+				workerRef.current = null;
+				setIsReady(false);
+			}
 		};
-	}, [workerUrl, onMessage, onError]);
+	}, [workerUrl]);
 
 	const terminate = () => {
 		if (workerRef.current) {
@@ -105,34 +127,100 @@ export function useMemtestWorker({
 	onComplete,
 	onError,
 }: UseMemtestWorkerOptions): UseMemtestWorkerReturn {
-	// Use Vite's ?worker syntax to properly load the worker module
-	const workerUrl = new URL(
-		"../../workers/memtestWorker.ts?worker",
-		import.meta.url
-	);
+	const workerRef = useRef<Worker | null>(null);
+	const [isReady, setIsReady] = useState(false);
+	const onProgressRef = useRef(onProgress);
+	const onLogRef = useRef(onLog);
+	const onCompleteRef = useRef(onComplete);
+	const onErrorRef = useRef(onError);
 
-	const handleMessage = (message: WorkerMessage) => {
-		const { type, payload } = message;
-		if (type === "progress") {
-			const progressPayload = payload as WorkerProgressPayload;
-			if (onProgress) {
-				onProgress(progressPayload.percent, progressPayload.step);
+	// Keep refs up to date
+	useEffect(() => {
+		onProgressRef.current = onProgress;
+		onLogRef.current = onLog;
+		onCompleteRef.current = onComplete;
+		onErrorRef.current = onError;
+	}, [onProgress, onLog, onComplete, onError]);
+
+	// Load and create the worker using Vite's worker import
+	useEffect(() => {
+		let cancelled = false;
+
+		// Use dynamic import to get the Worker constructor from Vite
+		import("../workers/memtestWorker.ts?worker")
+			.then((WorkerModule) => {
+				if (cancelled) return;
+
+				// Vite's ?worker import gives us a Worker constructor
+				const WorkerConstructor = WorkerModule.default || WorkerModule;
+				console.log("Worker module loaded, creating worker instance");
+
+				const worker = new WorkerConstructor();
+				workerRef.current = worker;
+
+				worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+					console.log("Worker message received:", event.data);
+					const { type, payload } = event.data;
+					if (type === "progress") {
+						const progressPayload = payload as WorkerProgressPayload;
+						if (onProgressRef.current) {
+							onProgressRef.current(progressPayload.percent, progressPayload.step);
+						}
+					} else if (type === "log") {
+						const logPayload = payload as WorkerLogPayload;
+						if (onLogRef.current) {
+							onLogRef.current(logPayload.line);
+						}
+					} else if (type === "complete") {
+						if (onCompleteRef.current) {
+							onCompleteRef.current();
+						}
+					}
+				};
+
+				worker.onerror = (error: ErrorEvent) => {
+					console.error("Worker error:", error);
+					if (onErrorRef.current) {
+						onErrorRef.current(error);
+					}
+				};
+
+				worker.onmessageerror = (error: MessageEvent) => {
+					console.error("Worker message error:", error);
+				};
+
+				setIsReady(true);
+				console.log("Worker ready");
+			})
+			.catch((error) => {
+				if (!cancelled) {
+					console.error("Failed to load worker module:", error);
+					if (onErrorRef.current) {
+						onErrorRef.current(error as ErrorEvent);
+					}
+				}
+			});
+
+		return () => {
+			cancelled = true;
+			if (workerRef.current) {
+				workerRef.current.terminate();
+				workerRef.current = null;
+				setIsReady(false);
 			}
-		} else if (type === "log") {
-			const logPayload = payload as WorkerLogPayload;
-			if (onLog) {
-				onLog(logPayload.line);
-			}
-		} else if (type === "complete") {
-			if (onComplete) {
-				onComplete();
-			}
+		};
+	}, []);
+
+	const terminate = () => {
+		if (workerRef.current) {
+			workerRef.current.terminate();
+			workerRef.current = null;
+			setIsReady(false);
 		}
 	};
 
-	return useWorker({
-		workerUrl,
-		onMessage: handleMessage,
-		onError,
-	});
+	return {
+		isReady,
+		terminate,
+	};
 }

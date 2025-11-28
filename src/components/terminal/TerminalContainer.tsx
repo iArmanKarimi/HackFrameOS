@@ -24,7 +24,7 @@ export const TerminalContainer: React.FC<TerminalContainerProps> = ({
 	return (
 		<div
 			ref={containerRef}
-			className="fixed inset-0 safemode-scrollbar"
+			className="fixed inset-0 hide-scrollbar"
 			onKeyDown={onKeyDown}
 			tabIndex={-1}
 			style={TERMINAL_STYLES.CONTAINER}

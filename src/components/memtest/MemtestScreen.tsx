@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { MemtestLogViewer } from "./MemtestLogViewer";
 import { MemtestProgressBar } from "./MemtestProgressBar";
@@ -15,18 +15,36 @@ export const MemtestScreen: React.FC<MemtestScreenProps> = ({ onExit }) => {
 	const [logs, setLogs] = useState<LogEntry[]>([]);
 	const [isComplete, setIsComplete] = useState(false);
 
-	useMemtestWorker({
-		onProgress: (percent, step) => {
-			setProgress(percent);
-			setCurrentStep(step);
-		},
-		onLog: line => {
-			setLogs(prev => [...prev, { id: `${prev.length}-${Date.now()}`, line }]);
-		},
-		onComplete: () => {
-			setIsComplete(true);
-		},
+	const handleProgress = useCallback((percent: number, step: string) => {
+		console.log("Memtest progress:", percent, step);
+		setProgress(percent);
+		setCurrentStep(step);
+	}, []);
+
+	const handleLog = useCallback((line: string) => {
+		console.log("Memtest log:", line);
+		setLogs(prev => [...prev, { id: `${prev.length}-${Date.now()}`, line }]);
+	}, []);
+
+	const handleComplete = useCallback(() => {
+		console.log("Memtest complete");
+		setIsComplete(true);
+	}, []);
+
+	const handleError = useCallback((error: ErrorEvent) => {
+		console.error("Memtest worker error:", error);
+	}, []);
+
+	const { isReady } = useMemtestWorker({
+		onProgress: handleProgress,
+		onLog: handleLog,
+		onComplete: handleComplete,
+		onError: handleError,
 	});
+
+	useEffect(() => {
+		console.log("Memtest worker ready:", isReady);
+	}, [isReady]);
 
 	useEffect(() => {
 		const handleKey = (event: KeyboardEvent) => {

@@ -54,9 +54,9 @@ export const COLORS = {
 
 // Boot screen constants
 export const BOOT_SCREEN_CONFIG = {
-	LINE_INTERVAL_MS: 50,
-	SEGMENT_BREAK_DELAY_MS: 300,
-	COMPLETION_DELAY_MS: 800,
+	LINE_INTERVAL_MS: 40,
+	SEGMENT_BREAK_DELAY_MS: 500,
+	COMPLETION_DELAY_MS: 1200,
 } as const;
 
 // GRUB screen constants
