@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-
+import { FirmwareScreen } from "./FirmwareScreen";
 import { GrubMenu } from "./GrubMenu";
-import { PreBootScreen } from "../boot/PreBootScreen";
 
 import { requestFullscreen } from "../../utils/fullscreen";
 
@@ -441,7 +440,7 @@ export const GrubScreen: React.FC<GrubScreenProps> = ({
 			style={GRUB_SCREEN_STYLES.CONTAINER}
 		>
 			{!preBootUnlocked ? (
-				<PreBootScreen />
+				<FirmwareScreen />
 			) : (
 				<div style={GRUB_SCREEN_STYLES.MENU_CONTAINER}>
 					<pre style={GRUB_SCREEN_STYLES.HEADER}>

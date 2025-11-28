@@ -1,6 +1,6 @@
 /**
- * PreBootScreen Component
- * Initial screen before GRUB menu is unlocked
+ * FirmwareScreen Component
+ * Firmware interface screen displayed before GRUB menu is unlocked
  */
 
 import React from "react";
@@ -42,14 +42,15 @@ const BUTTON_STYLE: React.CSSProperties = {
 };
 
 /**
- * Component for pre-boot screen (before GRUB menu)
+ * Component for firmware interface screen (before GRUB menu)
  */
-export const PreBootScreen: React.FC = () => {
+export const FirmwareScreen: React.FC = () => {
 	return (
 		<div style={CONTAINER_STYLE}>
 			<pre style={TITLE_STYLE}>HackFrame Firmware Interface</pre>
 			<div style={DESCRIPTION_STYLE}>
-				Initializing secure display pipeline. Press ENTER to start booting GNU GRUB.
+				Initializing secure display pipeline. Press ENTER to start booting GNU
+				GRUB.
 			</div>
 			<div style={BUTTON_STYLE}>PRESS ENTER</div>
 		</div>
