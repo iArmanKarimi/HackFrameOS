@@ -64,17 +64,26 @@ export function useTerminalHistory({
 
 	// Auto-scroll to bottom when history updates
 	useEffect(() => {
-		if (containerRef.current) {
-			// Use requestAnimationFrame to ensure DOM has updated
-			requestAnimationFrame(() => {
-				if (containerRef.current) {
-					containerRef.current.scrollTo({
-						top: containerRef.current.scrollHeight,
-						behavior: 'auto',
-					});
-				}
-			});
-		}
+		// Use requestAnimationFrame to ensure DOM has been painted
+		// React 18+ ensures all renders are complete before useEffect runs
+		requestAnimationFrame(() => {
+			// Re-check refs inside callback - component could unmount between effect and callback
+			const input = inputRef.current;
+			const container = containerRef.current;
+
+			if (input) {
+				// Scroll the input into view to ensure it's visible at the bottom
+				// This ensures the TerminalInput form is always visible
+				input.scrollIntoView({
+					behavior: 'auto',
+					block: 'end',
+					inline: 'nearest',
+				});
+			} else if (container) {
+				// Fallback: scroll container to bottom if input ref is not available
+				container.scrollTop = container.scrollHeight;
+			}
+		});
 	}, [history]);
 
 	// Update progress indicators
