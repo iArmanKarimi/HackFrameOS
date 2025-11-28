@@ -1,24 +1,15 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+
+import { GrubMenu } from "./GrubMenu";
+import { GrubProgressBar } from "./GrubProgressBar";
+import { PreBootScreen } from "./PreBootScreen";
+
 import { requestFullscreen } from "../utils/fullscreen";
+
 import { GRUB_CONFIG } from "../constants";
+import { FONT_STACKS, GRUB_SCREEN_STYLES } from "../styles/terminalStyles";
 
-/**
- * GrubScreen Component
- * ---------------------
- * Authentic GRUB boot menu simulation.
- * Text-based interface, keyboard-only interaction.
- * Automatically enters fullscreen when user starts boot.
- */
-type MenuItemValue = "normal" | "safemode" | "memtest" | "restart";
-
-type MenuItem = {
-	label: string;
-	detail?: string;
-	value: MenuItemValue;
-};
-
-const BASE_FONT_STACK =
-	"'Liberation Mono', 'DejaVu Sans Mono', 'Source Code Pro', monospace";
+import type { GrubScreenProps, MenuItem, MenuItemValue } from "../types";
 
 const MENU_ITEMS: MenuItem[] = [
 	{
@@ -43,10 +34,17 @@ const MENU_ITEMS: MenuItem[] = [
 	},
 ];
 
-export const GrubScreen: React.FC<{
-	onSelectBoot: (value: MenuItemValue) => void;
-	canBootNormal: boolean;
-}> = ({ onSelectBoot, canBootNormal }) => {
+/**
+ * GrubScreen Component
+ * ---------------------
+ * Authentic GRUB boot menu simulation.
+ * Text-based interface, keyboard-only interaction.
+ * Automatically enters fullscreen when user starts boot.
+ */
+export const GrubScreen: React.FC<GrubScreenProps> = ({
+	onSelectBoot,
+	canBootNormal,
+}) => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const preBootRef = useRef<HTMLDivElement>(null);
 	const prevCanBootNormal = useRef(canBootNormal);
@@ -242,253 +240,47 @@ export const GrubScreen: React.FC<{
 		};
 	}, [handlePreBootUnlock, preBootUnlocked]);
 
-	const filledSegments = autoBootEnabled
-		? Math.round(
-				((GRUB_CONFIG.BOOT_TIMEOUT_SECONDS - countdown) /
-					GRUB_CONFIG.BOOT_TIMEOUT_SECONDS) *
-					GRUB_CONFIG.PROGRESS_SEGMENTS
-			)
-		: GRUB_CONFIG.PROGRESS_SEGMENTS;
-	const progressBar =
-		"█".repeat(filledSegments) +
-		"░".repeat(GRUB_CONFIG.PROGRESS_SEGMENTS - filledSegments);
-
 	return (
 		<div
 			ref={preBootUnlocked ? containerRef : preBootRef}
 			tabIndex={0}
-			style={{
-				width: "100vw",
-				height: "100vh",
-				backgroundColor: "#000000",
-				backgroundImage:
-					"linear-gradient(180deg, rgba(10,10,10,0.95) 0%, rgba(0,0,0,1) 100%), repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px)",
-				color: "#ffffff",
-				fontFamily: BASE_FONT_STACK,
-				fontSize: "13px",
-				display: "flex",
-				flexDirection: "column",
-				justifyContent: "center",
-				alignItems: "center",
-				padding: "0",
-				outline: "none",
-				lineHeight: "1.2",
-				cursor: "none",
-				overflow: "hidden",
-				position: "relative",
-				userSelect: "none",
-			}}
+			style={GRUB_SCREEN_STYLES.CONTAINER}
 		>
 			{!preBootUnlocked ? (
-				<div
-					style={{
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						justifyContent: "center",
-						textAlign: "center",
-						gap: "1rem",
-						cursor: "default",
-					}}
-				>
-					<pre
-						style={{
-							fontSize: "14px",
-							letterSpacing: "0.15em",
-							color: "#00c2ff",
-							margin: 0,
-						}}
-					>
-						{`HackFrame Firmware Interface`}
-					</pre>
-					<div
-						style={{ fontSize: "12px", color: "#a9a9a9", maxWidth: "420px" }}
-					>
-						Initializing secure display pipeline. Press ENTER to start booting
-						GNU GRUB.
-					</div>
-					<div
-						style={{
-							padding: "0.75rem 1.5rem",
-							border: "1px solid #00c2ff",
-							color: "#00c2ff",
-							fontSize: "12px",
-							fontFamily: BASE_FONT_STACK,
-							letterSpacing: "0.3em",
-						}}
-					>
-						PRESS ENTER
-					</div>
-				</div>
+				<PreBootScreen />
 			) : (
-				<div
-					style={{
-						width: "100%",
-						height: "100%",
-						padding: "1.5rem",
-						boxSizing: "border-box",
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<pre
-						style={{
-							margin: 0,
-							fontSize: "13px",
-							color: "#ffffff",
-							whiteSpace: "pre",
-							fontFamily: BASE_FONT_STACK,
-							textAlign: "center",
-						}}
-					>
+				<div style={GRUB_SCREEN_STYLES.MENU_CONTAINER}>
+					<pre style={GRUB_SCREEN_STYLES.HEADER}>
 						{`GNU GRUB  version 2.06    |    HackFrameOS Boot Manager`}
 					</pre>
 
-					<pre
-						style={{
-							margin: "0.75rem 0 1rem 0",
-							fontSize: "12px",
-							color: "#8f8f8f",
-							whiteSpace: "pre",
-							fontFamily: BASE_FONT_STACK,
-							textAlign: "center",
-						}}
-					>
+					<pre style={GRUB_SCREEN_STYLES.SEPARATOR}>
 						{`──────────────────────────────────────────────────────────────`}
 					</pre>
 
-					<div
-						style={{
-							border: "1px solid rgba(255,255,255,0.25)",
-							padding: "0.5rem 0",
-							width: "460px",
-							maxWidth: "90vw",
-							backgroundColor: "rgba(5,5,5,0.65)",
-							boxShadow: "0 0 18px rgba(0,0,0,0.45)",
-							margin: "0 auto",
-						}}
-					>
-						{MENU_ITEMS.map((item, index) => {
-							const isActive = index === selectedIndex;
-							const isLocked = item.value === "normal" && !canBootNormal;
-							return (
-								<div
-									key={item.value}
-									style={{
-										fontFamily: BASE_FONT_STACK,
-										fontSize: "13px",
-										color: isLocked
-											? "#5b5b5b"
-											: isActive
-												? "#ffffff"
-												: "#c4c4c4",
-										padding: "0.45rem 1rem",
-										backgroundColor:
-											isActive && !isLocked ? "#114d9a" : "transparent",
-										borderLeft:
-											isActive && !isLocked
-												? "3px solid #4db5ff"
-												: "3px solid transparent",
-										display: "flex",
-										flexDirection: "column",
-										gap: "0.2rem",
-										opacity: isLocked ? 0.6 : 1,
-										textAlign: "center",
-									}}
-								>
-									<span>{item.label}</span>
-									{item.detail && (
-										<span
-											style={{
-												fontSize: "11px",
-												color: isLocked
-													? "#555555"
-													: isActive
-														? "#cfe9ff"
-														: "#7e7e7e",
-												fontFamily: BASE_FONT_STACK,
-											}}
-										>
-											{item.detail}
-										</span>
-									)}
-									{isLocked && (
-										<span
-											style={{
-												fontSize: "11px",
-												color: "#ff9b63",
-												fontFamily: BASE_FONT_STACK,
-											}}
-										>
-											System image flagged as damaged; Safe Mode must repair.
-										</span>
-									)}
-								</div>
-							);
-						})}
-					</div>
+					<GrubMenu
+						items={MENU_ITEMS}
+						selectedIndex={selectedIndex}
+						canBootNormal={canBootNormal}
+					/>
 
-					<div
-						style={{
-							marginTop: "1.25rem",
-							fontSize: "12px",
-							color: "#a9a9a9",
-							fontFamily: BASE_FONT_STACK,
-							textAlign: "center",
-						}}
-					>
-						<div>
-							Boot default entry in {autoBootEnabled ? `${countdown}s` : "—"}{" "}
-							{progressBar}
-						</div>
-						{!autoBootEnabled && (
-							<div style={{ marginTop: "0.25rem", color: "#737373" }}>
-								Auto boot paused (press ENTER to continue)
-							</div>
-						)}
-					</div>
+					<GrubProgressBar
+						countdown={countdown}
+						autoBootEnabled={autoBootEnabled}
+					/>
 
-					<div
-						style={{
-							marginTop: "2.5rem",
-							fontFamily: BASE_FONT_STACK,
-							fontSize: "11.5px",
-							color: "#9d9d9d",
-							lineHeight: "1.5",
-							textAlign: "center",
-						}}
-					>
+					<div style={GRUB_SCREEN_STYLES.INSTRUCTIONS}>
 						<div style={{ marginBottom: "0.2rem" }}>
 							Use the ↑ and ↓ keys to select which entry is highlighted.
 						</div>
 						<div>Press Enter to boot the highlighted entry.</div>
 					</div>
 
-					<div
-						style={{
-							marginTop: "1rem",
-							fontFamily: BASE_FONT_STACK,
-							fontSize: "11px",
-							color: "#636363",
-							textAlign: "center",
-						}}
-					>
+					<div style={GRUB_SCREEN_STYLES.BUILD_INFO}>
 						<div> Build: hf-grub 2.06-custom | Serial: 0xAC21-FRAME-76B4</div>
 					</div>
 
-					<div
-						style={{
-							marginTop: "0.75rem",
-							fontFamily: BASE_FONT_STACK,
-							fontSize: "12px",
-							color: "#00c2ff",
-							textAlign: "center",
-						}}
-					>
+					<div style={GRUB_SCREEN_STYLES.PROMPT}>
 						{`>>> Press ENTER to boot <<<${promptVisible ? "_" : " "}`}
 					</div>
 				</div>
