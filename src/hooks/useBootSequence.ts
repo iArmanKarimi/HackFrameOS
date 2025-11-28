@@ -71,6 +71,65 @@ export function useBootSequence({
 		}
 	}, [index]);
 
+	// Disable user scrolling while booting is in progress
+	useEffect(() => {
+		// Only disable scrolling while boot sequence is active
+		if (isComplete) {
+			return;
+		}
+
+		const container = containerRef.current;
+		if (!container) return;
+
+		// Prevent all user scroll events
+		const handleWheel = (e: WheelEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+		};
+
+		const handleTouchMove = (e: TouchEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+		};
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Prevent keyboard scrolling (arrow keys, page up/down, home/end, space)
+			if (
+				e.key === "ArrowUp" ||
+				e.key === "ArrowDown" ||
+				e.key === "PageUp" ||
+				e.key === "PageDown" ||
+				e.key === "Home" ||
+				e.key === "End" ||
+				(e.key === " " && !e.shiftKey)
+			) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		};
+
+		// Prevent scroll events from user interaction
+		const handleScroll = (e: Event) => {
+			// Only prevent if it's a user-initiated scroll (not programmatic)
+			// We can't easily detect this, so we'll reset to bottom immediately
+			if (container) {
+				container.scrollTop = container.scrollHeight;
+			}
+		};
+
+		container.addEventListener("wheel", handleWheel, { passive: false });
+		container.addEventListener("touchmove", handleTouchMove, { passive: false });
+		container.addEventListener("scroll", handleScroll, { passive: true });
+		container.addEventListener("keydown", handleKeyDown, { passive: false });
+
+		return () => {
+			container.removeEventListener("wheel", handleWheel);
+			container.removeEventListener("touchmove", handleTouchMove);
+			container.removeEventListener("scroll", handleScroll);
+			container.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [isComplete]);
+
 	return {
 		currentLines,
 		isComplete,
