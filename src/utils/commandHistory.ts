@@ -6,6 +6,10 @@ import { TERMINAL_CONFIG } from "../constants";
 
 /**
  * Add command to history with size limit
+ * @param history - Current command history array
+ * @param command - New command to add
+ * @param maxSize - Maximum history size (defaults to TERMINAL_CONFIG.MAX_COMMAND_HISTORY)
+ * @returns New history array with command added and size limited
  */
 export function addToHistory(
 	history: string[],
@@ -17,7 +21,11 @@ export function addToHistory(
 }
 
 /**
- * Navigate command history
+ * Navigate command history with arrow keys
+ * @param currentIndex - Current position in history (null means at bottom)
+ * @param direction - Navigation direction ("up" or "down")
+ * @param history - Command history array
+ * @returns Object with new index and command string
  */
 export function navigateHistory(
 	currentIndex: number | null,

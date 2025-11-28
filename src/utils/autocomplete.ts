@@ -5,6 +5,9 @@
 /**
  * Find common prefix among an array of strings.
  * Used for tab autocomplete: if multiple matches exist, complete to common prefix.
+ * @param strings - Array of strings to find common prefix for
+ * @returns Common prefix string (empty if no common prefix)
+ * @example findCommonPrefix(["help", "hint"]) returns "h"
  */
 export function findCommonPrefix(strings: string[]): string {
 	if (strings.length === 0) return "";
@@ -19,6 +22,9 @@ export function findCommonPrefix(strings: string[]): string {
 
 /**
  * Get autocomplete matches for a command prefix
+ * @param prefix - Command prefix to match
+ * @param availableCommands - List of available commands
+ * @returns Array of commands that start with the prefix
  */
 export function getCommandMatches(
 	prefix: string,
@@ -29,6 +35,9 @@ export function getCommandMatches(
 
 /**
  * Get autocomplete matches for a module prefix
+ * @param prefix - Module prefix to match
+ * @param availableModules - List of available modules
+ * @returns Array of modules that start with the prefix
  */
 export function getModuleMatches(
 	prefix: string,

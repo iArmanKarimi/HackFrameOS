@@ -12,6 +12,8 @@ import {
 
 /**
  * Process ANSI color code and return corresponding color
+ * @param code - ANSI color code number
+ * @returns CSS color string
  */
 function processAnsiCode(code: number): string {
 	if (ANSI_CODES.RESET.includes(code)) {
@@ -25,6 +27,9 @@ function processAnsiCode(code: number): string {
 
 /**
  * Flush buffered text to parts array with current color
+ * @param buffer - Accumulated text buffer
+ * @param currentColor - Current ANSI color to apply
+ * @param parts - Array of React nodes to append to
  */
 function flushBuffer(
 	buffer: string,
@@ -45,6 +50,8 @@ function flushBuffer(
  * Converts ANSI escape sequences in text to React elements with inline styles.
  * Handles both standard (\x1b[XXm) and malformed ([XXm without escape char) formats.
  * Only processes green (32) for [OK] messages; all other codes default to white.
+ * @param text - Text containing ANSI escape sequences
+ * @returns Array of React nodes with color styling applied
  */
 export function ansiToReact(text: string): React.ReactNode[] {
 	const parts: React.ReactNode[] = [];
@@ -130,6 +137,8 @@ export function ansiToReact(text: string): React.ReactNode[] {
 
 /**
  * Check if text contains ANSI escape sequences
+ * @param text - Text to check for ANSI codes
+ * @returns True if text contains ANSI escape sequences
  */
 export function hasAnsiCodes(text: string): boolean {
 	return text.includes("\x1b") || text.includes("\u001b");
