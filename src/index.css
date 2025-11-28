@@ -26,22 +26,15 @@ body {
 	min-height: 100vh;
 }
 
-/* Hide scrollbars while keeping scroll functionality */
-.hide-scrollbar,
-.hide-scrollbar *,
-[data-hide-scrollbar="true"],
-[data-hide-scrollbar="true"] * {
+/* Hide all scrollbars globally while keeping scroll functionality */
+* {
 	-ms-overflow-style: none !important;
 	/* IE and Edge */
 	scrollbar-width: none !important;
 	/* Firefox */
 }
 
-.hide-scrollbar::-webkit-scrollbar,
-.hide-scrollbar *::-webkit-scrollbar,
-[data-hide-scrollbar="true"]::-webkit-scrollbar,
-[data-hide-scrollbar="true"] *::-webkit-scrollbar,
-div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar {
+*::-webkit-scrollbar {
 	display: none !important;
 	/* Chrome, Safari, Opera */
 	width: 0 !important;
@@ -49,25 +42,22 @@ div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar {
 	background: transparent !important;
 }
 
-.hide-scrollbar::-webkit-scrollbar-track,
-.hide-scrollbar *::-webkit-scrollbar-track,
-[data-hide-scrollbar="true"]::-webkit-scrollbar-track,
-[data-hide-scrollbar="true"] *::-webkit-scrollbar-track,
-div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
 	display: none !important;
 	background: transparent !important;
 }
 
-.hide-scrollbar::-webkit-scrollbar-thumb,
-.hide-scrollbar *::-webkit-scrollbar-thumb,
-[data-hide-scrollbar="true"]::-webkit-scrollbar-thumb,
-[data-hide-scrollbar="true"] *::-webkit-scrollbar-thumb,
-div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
 	display: none !important;
 	background: transparent !important;
 }
 
-/* Terminal-style scrollbar for SafeMode */
+*::-webkit-scrollbar-corner {
+	display: none !important;
+	background: transparent !important;
+}
+
+/* Terminal-style scrollbar for SafeMode (if needed in the future) */
 .safemode-scrollbar {
 	scrollbar-width: thin;
 	scrollbar-color: #333333 #0d0d0d;

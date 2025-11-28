@@ -3,7 +3,7 @@
  * Container for terminal with scroll management
  */
 
-import React, { useEffect } from "react";
+import React from "react";
 
 import { TERMINAL_STYLES } from "../../styles/terminalStyles";
 
@@ -15,48 +15,17 @@ interface TerminalContainerProps {
 
 /**
  * Component for terminal container with scroll management
+ * Scrollbars are hidden globally via CSS, so no special handling needed here
  */
 export const TerminalContainer: React.FC<TerminalContainerProps> = ({
 	children,
 	containerRef,
 	onKeyDown,
 }) => {
-	// Apply scrollbar hiding - inject global style once
-	useEffect(() => {
-		const styleId = "safemode-hide-scrollbar-global";
-		if (!document.getElementById(styleId)) {
-			const style = document.createElement("style");
-			style.id = styleId;
-			style.textContent = `
-				.hide-scrollbar::-webkit-scrollbar {
-					display: none !important;
-					width: 0 !important;
-					height: 0 !important;
-				}
-				.hide-scrollbar::-webkit-scrollbar-track {
-					display: none !important;
-				}
-				.hide-scrollbar::-webkit-scrollbar-thumb {
-					display: none !important;
-				}
-			`;
-			document.head.appendChild(style);
-		}
-	}, []);
-
-	// Apply scrollbar hiding styles when element is available
-	useEffect(() => {
-		const element = containerRef.current;
-		if (element) {
-			element.style.setProperty("scrollbar-width", "none", "important");
-			element.style.setProperty("-ms-overflow-style", "none", "important");
-		}
-	}, [containerRef]);
-
 	return (
 		<div
 			ref={containerRef}
-			className="fixed inset-0 hide-scrollbar"
+			className="fixed inset-0"
 			onKeyDown={onKeyDown}
 			tabIndex={-1}
 			style={TERMINAL_STYLES.CONTAINER}

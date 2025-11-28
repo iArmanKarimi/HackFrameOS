@@ -26,11 +26,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
 	 * - Only render lines up to the current index.
 	 */
 	return (
-		<div
-			ref={containerRef}
-			className="hide-scrollbar"
-			style={BOOT_SCREEN_STYLES.CONTAINER}
-		>
+		<div ref={containerRef} style={BOOT_SCREEN_STYLES.CONTAINER}>
 			{currentLines.map((line, idx) => (
 				<BootLogLine key={idx} line={line} index={idx} />
 			))}
