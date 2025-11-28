@@ -12,7 +12,7 @@ import type { GrubScreenProps, MenuItem, MenuItemValue } from "../../types";
 const MENU_ITEMS: MenuItem[] = [
 	{
 		label: "HackFrame OS",
-		detail: "Normal boot sequence (unlocked after Safe Mode)",
+		detail: "Normal boot sequence",
 		value: "normal",
 	},
 	{

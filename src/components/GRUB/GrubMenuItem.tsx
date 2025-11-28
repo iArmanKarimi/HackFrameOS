@@ -70,7 +70,7 @@ export const GrubMenuItem: React.FC<GrubMenuItemProps> = ({
 			)}
 			{isLocked && (
 				<span style={LOCKED_MESSAGE_STYLE}>
-					System image flagged as damaged; Safe Mode must repair.
+					System image flagged as damaged; must be repaired in Safe Mode.
 				</span>
 			)}
 		</div>
