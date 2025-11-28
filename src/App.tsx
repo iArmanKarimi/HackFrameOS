@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import SafeModeTerminal from "./components/SafeModeTerminal";
-import { BootScreen } from "./components/BootScreen";
-import { GrubScreen } from "./components/GrubScreen";
-import DesktopShell from "./components/DesktopShell";
+
 import { initFilesystem } from "./os/fs";
+
+import { BootScreen } from "./components/BootScreen";
+import DesktopShell from "./components/DesktopShell";
+import { GrubScreen } from "./components/GrubScreen";
 import MemtestScreen from "./components/MemtestScreen";
+import SafeModeTerminal from "./components/SafeModeTerminal";
+
+import { useLocalStorageFlag } from "./hooks/useLocalStorage";
+
 import {
 	APP_PHASES,
 	BOOT_TARGETS,
@@ -18,13 +23,9 @@ const App: React.FC = () => {
 	const [bootTarget, setBootTarget] = useState<BootTarget>(
 		BOOT_TARGETS.SAFEMODE
 	);
-	const [hasCompletedSafeMode, setHasCompletedSafeMode] = useState<boolean>(
-		() => {
-			if (typeof window === "undefined") return false;
-			return (
-				window.localStorage.getItem(STORAGE_KEYS.SAFE_MODE_COMPLETE) === "true"
-			);
-		}
+	const [hasCompletedSafeMode, setHasCompletedSafeMode] = useLocalStorageFlag(
+		STORAGE_KEYS.SAFE_MODE_COMPLETE,
+		false
 	);
 
 	// Initialize filesystem with IndexedDB persistence on app startup
@@ -73,13 +74,8 @@ const App: React.FC = () => {
 
 	const handleSafeModeComplete = useCallback(() => {
 		setHasCompletedSafeMode(true);
-		try {
-			window.localStorage.setItem(STORAGE_KEYS.SAFE_MODE_COMPLETE, "true");
-		} catch (err) {
-			console.warn("Failed to persist safe mode completion flag:", err);
-		}
 		setPhase(APP_PHASES.DESKTOP);
-	}, []);
+	}, [setHasCompletedSafeMode]);
 
 	if (phase === APP_PHASES.START) {
 		return (

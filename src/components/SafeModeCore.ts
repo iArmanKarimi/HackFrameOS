@@ -4,29 +4,30 @@
  */
 
 import { z } from "zod";
+
+import { fsHelp, fsLs, fsCat } from "../os/fs";
 import {
 	BOOT_BANNER,
-	HELP_TEXT,
-	getModuleListing,
 	COMMAND_NOT_FOUND,
-	showStatus,
-	showMission,
-	nextHint,
-	listFragments,
-	resolveFragment,
-	loadModule,
+	HELP_TEXT,
 	clearScreen,
+	getModuleListing,
 	isSafeModeComplete,
+	listFragments,
+	loadModule,
+	nextHint,
+	resolveFragment,
+	showMission,
+	showStatus,
 } from "../os/kernel";
 import {
-	wifiHelp,
-	wifiScan,
-	wifiCrack,
-	wifiConnect,
 	netCheck,
 	ping,
+	wifiConnect,
+	wifiCrack,
+	wifiHelp,
+	wifiScan,
 } from "../os/net";
-import { fsHelp, fsLs, fsCat } from "../os/fs";
 
 export { BOOT_LOG } from "./boot-log";
 
@@ -88,7 +89,9 @@ const ModuleIdSchema = z.enum([
 const FragmentIdSchema = z.string().regex(/^0x[a-f0-9]{2}$/i);
 
 /**
- * Parse command input into command name and arguments.
+ * Parse command input into command name and arguments
+ * @param input - Raw command input string
+ * @returns Object with command name and array of arguments
  */
 function parseCommand(input: string): { command: string; args: string[] } {
 	const trimmed = input.trim();
@@ -105,6 +108,8 @@ type CommandHandler = (args: string[]) => string;
 
 /**
  * Handle load command with validation
+ * @param args - Command arguments (module name or empty)
+ * @returns Module listing or load result message
  */
 function handleLoad(args: string[]): string {
 	if (args.length === 0) {
@@ -148,7 +153,9 @@ Use 'mission' to check progress.`;
 }
 
 /**
- * Handle wifi command with subcommands
+ * Handle wifi command with subcommands (scan, crack, connect)
+ * @param args - Command arguments (subcommand and optional AP ID)
+ * @returns WiFi operation result message
  */
 function handleWifi(args: string[]): string {
 	if (args.length === 0) {
@@ -174,7 +181,9 @@ function handleWifi(args: string[]): string {
 }
 
 /**
- * Handle filesystem command with subcommands
+ * Handle filesystem command with subcommands (ls, cat)
+ * @param args - Command arguments (subcommand and optional path)
+ * @returns Filesystem operation result message
  */
 function handleFs(args: string[]): string {
 	if (args.length === 0) {
@@ -211,6 +220,8 @@ const COMMAND_HANDLERS: Record<string, CommandHandler> = {
 /**
  * Route a raw command line into the simulation core.
  * Uses a command map for cleaner routing and easier extension.
+ * @param input - Raw command input from user
+ * @returns Command output string or error message
  */
 export function runCommand(input: string): string {
 	const trimmed = input.trim();

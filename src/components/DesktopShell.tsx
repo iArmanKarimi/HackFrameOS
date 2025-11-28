@@ -1,5 +1,7 @@
 import React from "react";
- 
+
+import { DESKTOP_SHELL_STYLES } from "../styles/terminalStyles";
+
 /**
  * DesktopShell Component
  * ----------------------
@@ -8,42 +10,23 @@ import React from "react";
  */
 const DesktopShell: React.FC = () => {
 	return (
-		<div
-			style={{
-				width: "100vw",
-				height: "100vh",
-				backgroundColor: "#0d0d0d",
-				color: "#ffffff",
-				fontFamily: "VT323, monospace",
-				fontSize: "16px",
-				display: "flex",
-				flexDirection: "column",
-				padding: "1rem",
-				gap: "1rem",
-			}}
-		>
-			<div
-				style={{
-					border: "1px solid rgba(255, 255, 255, 0.2)",
-					padding: "1rem",
-				}}
-			>
+		<div style={DESKTOP_SHELL_STYLES.CONTAINER}>
+			<div style={DESKTOP_SHELL_STYLES.PANEL}>
 				<h2 style={{ margin: 0, marginBottom: "0.5rem" }}>
 					HackFrameOS Desktop v0.1.3-alpha - Recovery Complete
 				</h2>
 				<p style={{ margin: 0, opacity: 0.8 }}>
-					System rehabilitation complete. Desktop environment ready.
-					All critical subsystems online. Network: Operational.
+					System rehabilitation complete. Desktop environment ready. All
+					critical subsystems online. Network: Operational.
 				</p>
 			</div>
- 
+
 			<div style={{ flex: 1, display: "flex", gap: "1rem" }}>
 				<div
 					style={{
+						...DESKTOP_SHELL_STYLES.PANEL,
 						flex: 1,
-						border: "1px solid rgba(255, 255, 255, 0.2)",
-						padding: "1rem",
-						overflowY: "auto",
+						overflowY: "auto" as const,
 					}}
 				>
 					<h3 style={{ margin: 0, marginBottom: "0.5rem" }}>System Status</h3>
@@ -52,16 +35,16 @@ const DesktopShell: React.FC = () => {
 						here.
 					</p>
 					<p style={{ margin: "0.5rem 0 0 0", opacity: 0.6, fontSize: "14px" }}>
-						Status: All systems operational | Network: Connected | Boot fragments: Resolved
+						Status: All systems operational | Network: Connected | Boot
+						fragments: Resolved
 					</p>
 				</div>
- 
+
 				<div
 					style={{
+						...DESKTOP_SHELL_STYLES.PANEL,
 						flex: 1,
-						border: "1px solid rgba(255, 255, 255, 0.2)",
-						padding: "1rem",
-						overflowY: "auto",
+						overflowY: "auto" as const,
 					}}
 				>
 					<h3 style={{ margin: 0, marginBottom: "0.5rem" }}>Terminal</h3>
@@ -74,5 +57,5 @@ const DesktopShell: React.FC = () => {
 		</div>
 	);
 };
- 
+
 export default DesktopShell;
