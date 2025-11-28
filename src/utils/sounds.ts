@@ -17,7 +17,7 @@ const initAudio = async (): Promise<void> => {
 		}
 		audioInitialized = true;
 	} catch (error) {
-		console.warn("Failed to initialize audio context:", error);
+		// Audio context initialization failed - silent failure
 	}
 };
 

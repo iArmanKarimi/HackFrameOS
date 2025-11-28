@@ -54,8 +54,8 @@ export const COLORS = {
 
 // Boot screen constants
 export const BOOT_SCREEN_CONFIG = {
-	LINE_INTERVAL_MS: 40,
-	SEGMENT_BREAK_DELAY_MS: 500,
+	LINE_INTERVAL_MS: 35,
+	SEGMENT_BREAK_DELAY_MS: 450,
 	COMPLETION_DELAY_MS: 1200,
 } as const;
 

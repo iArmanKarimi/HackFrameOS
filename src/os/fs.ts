@@ -72,24 +72,16 @@ async function loadBrowserFS(): Promise<void> {
 
 		if (typeof browserFSModule.configure === "function") {
 			BrowserFS = browserFSModule as BrowserFSModule;
-			console.log("BrowserFS loaded successfully");
 		} else {
 			const defaultExport = browserFSModule.default || browserFSModule;
 			if (defaultExport && typeof defaultExport.configure === "function") {
 				BrowserFS = defaultExport as BrowserFSModule;
-				console.log("BrowserFS loaded successfully (via default export)");
 			} else {
-				console.warn("BrowserFS module loaded but configure method not found", {
-					hasConfigure: typeof browserFSModule.configure,
-					hasDefault: !!browserFSModule.default,
-					moduleKeys: Object.keys(browserFSModule),
-				});
 				BrowserFS = null;
 				initializationFailed = true;
 			}
 		}
 	} catch (error) {
-		console.error("Failed to load BrowserFS:", error);
 		BrowserFS = null;
 		initializationFailed = true;
 	}
@@ -101,7 +93,6 @@ export async function initFilesystem(): Promise<void> {
 
 	// If BrowserFS is not available, skip initialization gracefully
 	if (!BrowserFS || !BrowserFS.configure) {
-		console.warn("BrowserFS not available - skipping filesystem initialization");
 		isInitialized = true; // Mark as initialized to prevent repeated attempts
 		initializationFailed = true;
 		return;
@@ -113,7 +104,6 @@ export async function initFilesystem(): Promise<void> {
 
 	// Double-check that configure exists before using it
 	if (!BrowserFS || typeof BrowserFS.configure !== "function") {
-		console.warn("BrowserFS.configure is not available - skipping filesystem initialization");
 		isInitialized = true;
 		initializationFailed = true;
 		return;
@@ -136,7 +126,6 @@ export async function initFilesystem(): Promise<void> {
 				},
 				(err: Error | null) => {
 					if (err) {
-						console.warn("Failed to configure BrowserFS:", err);
 						reject(err);
 						return;
 					}
@@ -155,13 +144,11 @@ export async function initFilesystem(): Promise<void> {
 							.then(() => resolve())
 							.catch(reject);
 					} catch (error) {
-						console.warn("Failed to get filesystem instance:", error);
 						reject(error);
 					}
 				}
 			);
 		} catch (error) {
-			console.warn("Failed to initialize BrowserFS:", error);
 			reject(error);
 		}
 	});
@@ -263,10 +250,7 @@ async function initializeDefaultStructure(): Promise<void> {
 				await asyncFs.writeFile(path, content, "utf8");
 			}
 		} catch (err) {
-			const error = err as FileSystemError;
-			if (error.code !== "EEXIST" && error.code !== "ENOTSUP") {
-				console.warn(`Failed to initialize ${path}:`, err);
-			}
+			// Failed to initialize file - silently skip
 		}
 	}
 }
@@ -422,7 +406,6 @@ export async function appendLog(path: string, line: string): Promise<void> {
 		fs.writeFileSync(path, currentContent + logLine, "utf8");
 	} catch (err) {
 		// Silent failure for logging operations
-		console.warn(`Failed to append log to ${path}:`, err);
 	}
 }
 

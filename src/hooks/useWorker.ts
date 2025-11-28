@@ -47,32 +47,27 @@ export function useWorker({
 		try {
 			// Convert URL to string if needed
 			const urlString = workerUrl instanceof URL ? workerUrl.href : workerUrl;
-			console.log("Creating worker with URL:", urlString);
 			worker = new Worker(urlString, { type: "module" });
 			workerRef.current = worker;
-			console.log("Worker created successfully");
 
 			worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-				console.log("Worker message received:", event.data);
 				if (onMessageRef.current) {
 					onMessageRef.current(event.data);
 				}
 			};
 
 			worker.onerror = (error: ErrorEvent) => {
-				console.error("Worker error:", error);
 				if (onErrorRef.current) {
 					onErrorRef.current(error);
 				}
 			};
 
 			worker.onmessageerror = (error: MessageEvent) => {
-				console.error("Worker message error:", error);
+				// Message error - handler can be added if needed
 			};
 
 			setIsReady(true);
 		} catch (error) {
-			console.error("Failed to create worker:", error);
 			if (onErrorRef.current) {
 				onErrorRef.current(error as ErrorEvent);
 			}
@@ -153,13 +148,11 @@ export function useMemtestWorker({
 
 				// Vite's ?worker import gives us a Worker constructor
 				const WorkerConstructor = WorkerModule.default || WorkerModule;
-				console.log("Worker module loaded, creating worker instance");
 
 				const worker = new WorkerConstructor();
 				workerRef.current = worker;
 
 				worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-					console.log("Worker message received:", event.data);
 					const { type, payload } = event.data;
 					if (type === "progress") {
 						const progressPayload = payload as WorkerProgressPayload;
@@ -179,22 +172,19 @@ export function useMemtestWorker({
 				};
 
 				worker.onerror = (error: ErrorEvent) => {
-					console.error("Worker error:", error);
 					if (onErrorRef.current) {
 						onErrorRef.current(error);
 					}
 				};
 
 				worker.onmessageerror = (error: MessageEvent) => {
-					console.error("Worker message error:", error);
+					// Message error - handler can be added if needed
 				};
 
 				setIsReady(true);
-				console.log("Worker ready");
 			})
 			.catch((error) => {
 				if (!cancelled) {
-					console.error("Failed to load worker module:", error);
 					if (onErrorRef.current) {
 						onErrorRef.current(error as ErrorEvent);
 					}

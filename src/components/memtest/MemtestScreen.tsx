@@ -16,23 +16,20 @@ export const MemtestScreen: React.FC<MemtestScreenProps> = ({ onExit }) => {
 	const [isComplete, setIsComplete] = useState(false);
 
 	const handleProgress = useCallback((percent: number, step: string) => {
-		console.log("Memtest progress:", percent, step);
 		setProgress(percent);
 		setCurrentStep(step);
 	}, []);
 
 	const handleLog = useCallback((line: string) => {
-		console.log("Memtest log:", line);
 		setLogs(prev => [...prev, { id: `${prev.length}-${Date.now()}`, line }]);
 	}, []);
 
 	const handleComplete = useCallback(() => {
-		console.log("Memtest complete");
 		setIsComplete(true);
 	}, []);
 
 	const handleError = useCallback((error: ErrorEvent) => {
-		console.error("Memtest worker error:", error);
+		// Error handler - can be extended if needed
 	}, []);
 
 	const { isReady } = useMemtestWorker({
@@ -41,10 +38,6 @@ export const MemtestScreen: React.FC<MemtestScreenProps> = ({ onExit }) => {
 		onComplete: handleComplete,
 		onError: handleError,
 	});
-
-	useEffect(() => {
-		console.log("Memtest worker ready:", isReady);
-	}, [isReady]);
 
 	useEffect(() => {
 		const handleKey = (event: KeyboardEvent) => {

@@ -1,39 +1,70 @@
 @font-face {
-font-family: "VT323";
-src: url("./fonts/VT323-Regular.ttf") format("truetype");
-font-weight: normal;
-font-style: normal;
+	font-family: "VT323";
+	src: url("./fonts/VT323-Regular.ttf") format("truetype");
+	font-weight: normal;
+	font-style: normal;
 }
 
 :root {
-font-family: "VT323", "JetBrains Mono", monospace;
-color: #ffffff;
-background-color: #0d0d0d;
+	font-family: "VT323", "JetBrains Mono", monospace;
+	color: #ffffff;
+	background-color: #0d0d0d;
 }
 
 * {
-box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 body {
-margin: 0;
-min-height: 100vh;
-background-color: inherit;
-color: inherit;
+	margin: 0;
+	min-height: 100vh;
+	background-color: inherit;
+	color: inherit;
 }
 
 #root {
-min-height: 100vh;
+	min-height: 100vh;
 }
 
 /* Hide scrollbars while keeping scroll functionality */
-.hide-scrollbar {
-	-ms-overflow-style: none; /* IE and Edge */
-	scrollbar-width: none; /* Firefox */
+.hide-scrollbar,
+.hide-scrollbar *,
+[data-hide-scrollbar="true"],
+[data-hide-scrollbar="true"] * {
+	-ms-overflow-style: none !important;
+	/* IE and Edge */
+	scrollbar-width: none !important;
+	/* Firefox */
 }
 
-.hide-scrollbar::-webkit-scrollbar {
-	display: none; /* Chrome, Safari, Opera */
+.hide-scrollbar::-webkit-scrollbar,
+.hide-scrollbar *::-webkit-scrollbar,
+[data-hide-scrollbar="true"]::-webkit-scrollbar,
+[data-hide-scrollbar="true"] *::-webkit-scrollbar,
+div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar {
+	display: none !important;
+	/* Chrome, Safari, Opera */
+	width: 0 !important;
+	height: 0 !important;
+	background: transparent !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar-track,
+.hide-scrollbar *::-webkit-scrollbar-track,
+[data-hide-scrollbar="true"]::-webkit-scrollbar-track,
+[data-hide-scrollbar="true"] *::-webkit-scrollbar-track,
+div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar-track {
+	display: none !important;
+	background: transparent !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar-thumb,
+.hide-scrollbar *::-webkit-scrollbar-thumb,
+[data-hide-scrollbar="true"]::-webkit-scrollbar-thumb,
+[data-hide-scrollbar="true"] *::-webkit-scrollbar-thumb,
+div.fixed.inset-0.hide-scrollbar::-webkit-scrollbar-thumb {
+	display: none !important;
+	background: transparent !important;
 }
 
 /* Terminal-style scrollbar for SafeMode */

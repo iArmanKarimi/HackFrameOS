@@ -31,9 +31,8 @@ const App: React.FC = () => {
 	// Initialize filesystem with IndexedDB persistence on app startup
 	// Failures are handled gracefully - app will work without filesystem
 	useEffect(() => {
-		initFilesystem().catch(err => {
+		initFilesystem().catch(() => {
 			// Filesystem is optional - app can function without it
-			console.warn("Filesystem initialization failed (non-critical):", err);
 		});
 	}, []);
 
@@ -50,7 +49,6 @@ const App: React.FC = () => {
 			}
 
 			if (target === BOOT_TARGETS.NORMAL && !hasCompletedSafeMode) {
-				console.warn("Normal boot locked until Safe Mode completes.");
 				return;
 			}
 

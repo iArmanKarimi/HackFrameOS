@@ -26,14 +26,12 @@ const formatLog = (text: string) => {
 
 const run = async () => {
 	try {
-		console.log("Memtest worker: Starting...");
 		let percent = 0;
 		emit({
 			type: "log",
 			payload: { line: formatLog("memtest86+ diagnostic initialized") },
 		});
 		emit({ type: "progress", payload: { percent, step: "Initializing..." } });
-		console.log("Memtest worker: Initial progress sent", percent);
 
 		for (const step of TEST_PLAN) {
 			emit({ type: "log", payload: { line: formatLog(step.label) } });
@@ -53,7 +51,6 @@ const run = async () => {
 		});
 		emit({ type: "complete", payload: { passed: true } });
 	} catch (error) {
-		console.error("Memtest worker error:", error);
 		emit({
 			type: "log",
 			payload: { line: formatLog(`Error: ${error instanceof Error ? error.message : String(error)}`) },
@@ -61,8 +58,8 @@ const run = async () => {
 	}
 };
 
-run().catch(error => {
-	console.error("Failed to run memtest:", error);
+run().catch(() => {
+	// Error handling - can be extended if needed
 });
 
 export { };

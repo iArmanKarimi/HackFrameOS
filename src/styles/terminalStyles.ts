@@ -33,6 +33,8 @@ export const TERMINAL_STYLES = {
 		fontSize: "16px",
 		padding: "1rem",
 		overflowY: "auto",
+		scrollbarWidth: "none" as const,
+		msOverflowStyle: "none" as const,
 	} as CSSProperties,
 
 	HISTORY_LINE: {

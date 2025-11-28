@@ -3,7 +3,7 @@
  * Container for terminal with scroll management
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 
 import { TERMINAL_STYLES } from "../../styles/terminalStyles";
 
@@ -21,6 +21,38 @@ export const TerminalContainer: React.FC<TerminalContainerProps> = ({
 	containerRef,
 	onKeyDown,
 }) => {
+	// Apply scrollbar hiding - inject global style once
+	useEffect(() => {
+		const styleId = "safemode-hide-scrollbar-global";
+		if (!document.getElementById(styleId)) {
+			const style = document.createElement("style");
+			style.id = styleId;
+			style.textContent = `
+				.hide-scrollbar::-webkit-scrollbar {
+					display: none !important;
+					width: 0 !important;
+					height: 0 !important;
+				}
+				.hide-scrollbar::-webkit-scrollbar-track {
+					display: none !important;
+				}
+				.hide-scrollbar::-webkit-scrollbar-thumb {
+					display: none !important;
+				}
+			`;
+			document.head.appendChild(style);
+		}
+	}, []);
+
+	// Apply scrollbar hiding styles when element is available
+	useEffect(() => {
+		const element = containerRef.current;
+		if (element) {
+			element.style.setProperty("scrollbar-width", "none", "important");
+			element.style.setProperty("-ms-overflow-style", "none", "important");
+		}
+	}, [containerRef]);
+
 	return (
 		<div
 			ref={containerRef}
